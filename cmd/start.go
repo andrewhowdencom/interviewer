@@ -5,36 +5,48 @@ Copyright © 2025 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"github.com/andrewhowdencom/interviewer/interview"
 	"github.com/spf13/cobra"
 )
 
 // startCmd represents the start command
-var candidate string
 var startCmd = &cobra.Command{
 	Use:   "start",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Starts a new interview",
+	Long: `Starts a new interview with a candidate.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		cmd.OutOrStdout().Write([]byte("start called\n"))
+		// For now, we'll use the static question provider and terminal UI.
+		// In the future, we can use flags to specify different providers and UIs.
+		questionProvider := interview.NewStaticQuestionProvider()
+		ui := interview.NewTerminalUI()
+		runInterview(cmd, questionProvider, ui)
 	},
 }
 
+func runInterview(cmd *cobra.Command, questionProvider interview.QuestionProvider, ui interview.InterviewUI) {
+	var qas []interview.QuestionAndAnswer
+
+	for {
+		question, hasMore := questionProvider.NextQuestion()
+		if !hasMore {
+			break
+		}
+
+		answer, err := ui.Ask(question)
+		if err != nil {
+			cmd.ErrOrStderr().Write([]byte("Error asking question: " + err.Error()))
+			return
+		}
+
+		qas = append(qas, interview.QuestionAndAnswer{
+			Question: question,
+			Answer:   answer,
+		})
+	}
+
+	ui.DisplaySummary(qas)
+}
+
 func init() {
-	interviewsCmd.AddCommand(startCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// startCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// startCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-	startCmd.Flags().StringVarP(&candidate, "candidate", "c", "", "The name of the candidate to interview")
+	interviewCmd.AddCommand(startCmd)
 }

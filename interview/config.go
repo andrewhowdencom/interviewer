@@ -9,6 +9,13 @@ type Config struct {
 // Providers defines the structure for provider configurations.
 type Providers struct {
 	Gemini Gemini `mapstructure:"gemini"`
+	Slack  Slack  `mapstructure:"slack"`
+}
+
+// Slack defines the structure for Slack provider configuration.
+type Slack struct {
+	BotToken      string `mapstructure:"bot-token"`
+	SigningSecret string `mapstructure:"signing-secret"`
 }
 
 // Gemini defines the structure for Gemini provider configuration.

@@ -27,7 +27,6 @@ func (w *generativeModelWrapper) SendMessage(ctx context.Context, parts ...genai
 	return w.GenerativeModel.GenerateContent(ctx, parts...)
 }
 
-
 // NewGeminiQuestionProvider creates a new GeminiQuestionProvider.
 func NewGeminiQuestionProvider(model, apiKey, prompt string) (*GeminiQuestionProvider, error) {
 	ctx := context.Background()
@@ -72,11 +71,6 @@ func (p *GeminiQuestionProvider) NextQuestion(previousAnswer string) (string, bo
 
 	resp, err := p.conversational.SendMessage(ctx, parts...)
 	if err != nil {
-		// In a real application, you'd want to handle this error more gracefully.
-		// For now, we'll just end the interview.
-		if strings.Contains(err.Error(), "404") {
-			fmt.Println("Error: The configured model was not found. Please check the model name and ensure your API key has the correct permissions.")
-		}
 		fmt.Println("Error getting next question:", err)
 		return "", false
 	}

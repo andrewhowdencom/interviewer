@@ -9,5 +9,5 @@ interviews:
 
     technical-interview:
       provider: gemini
-      model: "gemini-1.5-flash"
+      model: "gemini-2.5-flash"
       prompt: "You are an interviewer conducting a technical interview for a Senior Software Engineer position."

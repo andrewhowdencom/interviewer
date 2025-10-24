@@ -81,7 +81,13 @@ func newQuestionProvider(cmd *cobra.Command, config *interview.Config, topic *in
 		if !cmd.Flags().Changed("model") && config.Providers.Gemini.Model != "" {
 			model = config.Providers.Gemini.Model
 		}
-		return interview.NewGeminiQuestionProvider(model, apiKey, topic.Prompt)
+		systemPrompt := interview.DefaultSystemPrompt
+		if config.Providers.Gemini.Interviewer.Prompt != "" {
+			systemPrompt = config.Providers.Gemini.Interviewer.Prompt
+		}
+
+		finalPrompt := fmt.Sprintf("%s\n\n%s", systemPrompt, topic.Prompt)
+		return interview.NewGeminiQuestionProvider(model, apiKey, finalPrompt)
 	default:
 		return nil, fmt.Errorf("unknown provider '%s'", topic.Provider)
 	}

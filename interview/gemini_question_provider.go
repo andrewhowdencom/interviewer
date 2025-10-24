@@ -9,6 +9,8 @@ import (
 	"google.golang.org/api/option"
 )
 
+const DefaultSystemPrompt = "You are an expert interviewer. Your primary goal is to conduct a professional and thorough interview based on the provided context. Before starting, ask clarifying questions to ensure you fully understand the user's goals for this interview. Once you have a clear understanding, you may begin."
+
 // GeminiQuestionProvider provides questions from the Gemini API.
 type GeminiQuestionProvider struct {
 	client         GeminiClient
@@ -28,7 +30,7 @@ func (w *generativeModelWrapper) SendMessage(ctx context.Context, parts ...genai
 }
 
 // NewGeminiQuestionProvider creates a new GeminiQuestionProvider.
-func NewGeminiQuestionProvider(model, apiKey, prompt string) (*GeminiQuestionProvider, error) {
+var NewGeminiQuestionProvider = func(model, apiKey, prompt string) (QuestionProvider, error) {
 	ctx := context.Background()
 	client, err := genai.NewClient(ctx, option.WithAPIKey(apiKey))
 	if err != nil {

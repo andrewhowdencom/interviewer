@@ -2,32 +2,66 @@ package cmd
 
 import (
 	"bytes"
-	"strings"
+	"errors"
 	"testing"
+	"github.com/spf13/cobra"
+	"github.com/andrewhowdencom/interviewer/interview"
 )
 
-func TestStartCmd(t *testing.T) {
-	// Create a buffer to capture the command's output
+// MockQuestionProvider is a mock implementation of the QuestionProvider interface for testing.
+type MockQuestionProvider struct {
+	questions []string
+	currentIndex int
+}
+
+func (p *MockQuestionProvider) NextQuestion() (string, bool) {
+	if p.currentIndex < len(p.questions) {
+		question := p.questions[p.currentIndex]
+		p.currentIndex++
+		return question, true
+	}
+	return "", false
+}
+
+// MockInterviewUI is a mock implementation of the InterviewUI interface for testing.
+type MockInterviewUI struct {
+	answers []string
+	currentIndex int
+	summary bytes.Buffer
+}
+
+func (ui *MockInterviewUI) Ask(question string) (string, error) {
+	if ui.currentIndex < len(ui.answers) {
+		answer := ui.answers[ui.currentIndex]
+		ui.currentIndex++
+		return answer, nil
+	}
+	return "", errors.New("not enough answers")
+}
+
+func (ui *MockInterviewUI) DisplaySummary(qas []interview.QuestionAndAnswer) {
+	for _, qa := range qas {
+		ui.summary.WriteString("Q: " + qa.Question + "\n")
+		ui.summary.WriteString("A: " + qa.Answer + "\n")
+	}
+}
+
+func TestRunInterview(t *testing.T) {
+	questions := []string{"q1", "q2"}
+	answers := []string{"a1", "a2"}
+
+	mockProvider := &MockQuestionProvider{questions: questions}
+	mockUI := &MockInterviewUI{answers: answers}
+
+	cmd := &cobra.Command{}
 	buf := new(bytes.Buffer)
-	rootCmd.SetOut(buf)
+	cmd.SetOut(buf)
+	cmd.SetErr(buf)
 
-	// Set the arguments for the command
-	rootCmd.SetArgs([]string{"interviews", "start", "--candidate", "John Doe"})
+	runInterview(cmd, mockProvider, mockUI)
 
-	// Execute the command
-	err := rootCmd.Execute()
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-
-	// Check that the candidate variable was set correctly
-	if candidate != "John Doe" {
-		t.Errorf("expected candidate to be 'John Doe', got '%s'", candidate)
-	}
-
-	// Check the output of the command
-	expectedOutput := "start called"
-	if !strings.Contains(buf.String(), expectedOutput) {
-		t.Errorf("expected output to contain '%s', got '%s'", expectedOutput, buf.String())
+	expectedSummary := "Q: q1\nA: a1\nQ: q2\nA: a2\n"
+	if mockUI.summary.String() != expectedSummary {
+		t.Errorf("expected summary '%s', got '%s'", expectedSummary, mockUI.summary.String())
 	}
 }

@@ -82,6 +82,9 @@ func (p *GeminiQuestionProvider) NextQuestion(previousAnswer string) (string, bo
 	if err != nil {
 		// In a real application, you'd want to handle this error more gracefully.
 		// For now, we'll just end the interview.
+		if strings.Contains(err.Error(), "404") {
+			fmt.Println("Error: The configured model was not found. Please check the model name and ensure your API key has the correct permissions.")
+		}
 		fmt.Println("Error getting next question:", err)
 		return "", false
 	}

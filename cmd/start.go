@@ -83,7 +83,7 @@ func runInterview(cmd *cobra.Command, questionProvider interview.QuestionProvide
 func init() {
 	interviewCmd.AddCommand(startCmd)
 	startCmd.Flags().String("provider", "static", "The question provider to use (static or gemini)")
-	startCmd.Flags().String("model", "gemini-1.5-flash", "The gemini model to use")
+	startCmd.Flags().String("model", "gemini-2.5-flash", "The gemini model to use")
 	startCmd.Flags().String("api-key", "", "The API key for the gemini provider")
 	viper.BindPFlags(startCmd.Flags())
 }

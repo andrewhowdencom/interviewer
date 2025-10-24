@@ -1,10 +1,12 @@
-package interview
+package slack_test
 
 import (
 	"errors"
 	"testing"
 
-	"github.com/slack-go/slack"
+	"github.com/andrewhowdencom/vox/internal/adapters/ui/slack"
+	"github.com/andrewhowdencom/vox/internal/domain/interview"
+	goslack "github.com/slack-go/slack"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -14,7 +16,7 @@ type MockSlackClient struct {
 	mock.Mock
 }
 
-func (m *MockSlackClient) PostMessage(channelID string, options ...slack.MsgOption) (string, string, error) {
+func (m *MockSlackClient) PostMessage(channelID string, options ...goslack.MsgOption) (string, string, error) {
 	args := m.Called(channelID, options)
 	return args.String(0), args.String(1), args.Error(2)
 }
@@ -22,12 +24,7 @@ func (m *MockSlackClient) PostMessage(channelID string, options ...slack.MsgOpti
 func TestSlackUI_Ask(t *testing.T) {
 	t.Run("should send a question to Slack and return the answer", func(t *testing.T) {
 		mockClient := new(MockSlackClient)
-		ui := &SlackUI{
-			Client:     mockClient,
-			ChannelID:  "C12345",
-			UserID:     "U12345",
-			AnswerChan: make(chan string, 1),
-		}
+		ui := slack.New(mockClient, "C12345", "U12345")
 
 		mockClient.On("PostMessage", "C12345", mock.Anything).Return("", "", nil)
 
@@ -43,12 +40,7 @@ func TestSlackUI_Ask(t *testing.T) {
 
 	t.Run("should return an error if sending the message fails", func(t *testing.T) {
 		mockClient := new(MockSlackClient)
-		ui := &SlackUI{
-			Client:     mockClient,
-			ChannelID:  "C12345",
-			UserID:     "U123p5",
-			AnswerChan: make(chan string, 1),
-		}
+		ui := slack.New(mockClient, "C12345", "U12345")
 
 		mockClient.On("PostMessage", "C12345", mock.Anything).Return("", "", errors.New("API error"))
 
@@ -61,13 +53,9 @@ func TestSlackUI_Ask(t *testing.T) {
 func TestSlackUI_DisplaySummary(t *testing.T) {
 	t.Run("should send the summary to Slack", func(t *testing.T) {
 		mockClient := new(MockSlackClient)
-		ui := &SlackUI{
-			Client:    mockClient,
-			ChannelID: "C12345",
-			UserID:    "U12345",
-		}
+		ui := slack.New(mockClient, "C12345", "U12345")
 
-		qas := []QuestionAndAnswer{
+		qas := []interview.QuestionAndAnswer{
 			{Question: "Question 1", Answer: "Answer 1"},
 			{Question: "Question 2", Answer: "Answer 2"},
 		}

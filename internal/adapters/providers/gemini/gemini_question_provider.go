@@ -1,28 +1,20 @@
-package interview
+package gemini
 
 import (
 	"context"
 	"fmt"
 	"strings"
 
+	"github.com/andrewhowdencom/vox/internal/domain/interview"
 	"github.com/google/generative-ai-go/genai"
 	"google.golang.org/api/option"
 )
 
-// Model is a type for the Gemini model name.
-type Model string
-
-// APIKey is a type for the Gemini API key.
-type APIKey string
-
-// Prompt is a type for the interview prompt.
-type Prompt string
-
 const InterviewStructure = `You are to ask maximally one question at a time, and then wait for the users response. Then, use the
 users prompt and the information supplied in the context so far to ask the next question.`
 
-// GeminiQuestionProvider provides questions from the Gemini API.
-type GeminiQuestionProvider struct {
+// QuestionProvider provides questions from the Gemini API.
+type QuestionProvider struct {
 	client         GeminiClient
 	conversational ChatSession
 	questionCount  int
@@ -30,17 +22,8 @@ type GeminiQuestionProvider struct {
 	summary        string
 }
 
-// generativeModelWrapper wraps a genai.GenerativeModel to implement the GeminiClient interface.
-type generativeModelWrapper struct {
-	*genai.GenerativeModel
-}
-
-func (w *generativeModelWrapper) SendMessage(ctx context.Context, parts ...genai.Part) (*genai.GenerateContentResponse, error) {
-	return w.GenerativeModel.GenerateContent(ctx, parts...)
-}
-
-// NewGeminiQuestionProvider creates a new GeminiQuestionProvider.
-func NewGeminiQuestionProvider(model Model, apiKey APIKey, prompt Prompt) (QuestionProvider, error) {
+// New creates a new GeminiQuestionProvider.
+func New(model Model, apiKey APIKey, prompt Prompt) (interview.QuestionProvider, error) {
 	ctx := context.Background()
 	client, err := genai.NewClient(ctx, option.WithAPIKey(string(apiKey)))
 	if err != nil {
@@ -50,8 +33,10 @@ func NewGeminiQuestionProvider(model Model, apiKey APIKey, prompt Prompt) (Quest
 	generativeModel := client.GenerativeModel(string(model))
 	wrappedModel := &generativeModelWrapper{generativeModel}
 
-	cs := wrappedModel.StartChat()
-	cs.History = []*genai.Content{
+	// The chat session needs to be initialized with history.
+	// We'll do this by accessing the underlying genai.ChatSession.
+	chat := wrappedModel.GenerativeModel.StartChat()
+	chat.History = []*genai.Content{
 		{
 			Parts: []genai.Part{
 				genai.Text(prompt),
@@ -61,15 +46,18 @@ func NewGeminiQuestionProvider(model Model, apiKey APIKey, prompt Prompt) (Quest
 		},
 	}
 
-	return &GeminiQuestionProvider{
+	// Now, we wrap the initialized chat session.
+	cs := NewGenaiChatSessionWrapper(chat)
+
+	return &QuestionProvider{
 		client:         wrappedModel,
-		conversational: NewGenaiChatSessionWrapper(cs),
+		conversational: cs,
 		maxQuestions:   20,
 	}, nil
 }
 
 // NextQuestion returns the next question from the Gemini API.
-func (p *GeminiQuestionProvider) NextQuestion(previousAnswer string) (string, bool) {
+func (p *QuestionProvider) NextQuestion(previousAnswer string) (string, bool) {
 	if p.questionCount >= p.maxQuestions {
 		// Generate summary before finishing
 		p.generateSummary()
@@ -108,7 +96,7 @@ func (p *GeminiQuestionProvider) NextQuestion(previousAnswer string) (string, bo
 }
 
 // generateSummary generates a summary of the interview using the Gemini API.
-func (p *GeminiQuestionProvider) generateSummary() {
+func (p *QuestionProvider) generateSummary() {
 	ctx := context.Background()
 	resp, err := p.conversational.SendMessage(ctx, genai.Text("Please summarize our conversation."))
 	if err != nil {
@@ -127,6 +115,8 @@ func (p *GeminiQuestionProvider) generateSummary() {
 }
 
 // Summary returns the summary of the interview.
-func (p *GeminiQuestionProvider) Summary() string {
+func (p *QuestionProvider) Summary() string {
 	return p.summary
 }
+
+var _ interview.QuestionProvider = (*QuestionProvider)(nil)

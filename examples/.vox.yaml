@@ -1,0 +1,12 @@
+interviews:
+    - id: behavioural-interview
+      provider: static
+      questions:
+        - "Tell me about a time you had to deal with a difficult coworker."
+        - "What is your greatest weakness?"
+        - "How do you handle stress and pressure?"
+
+    - id: technical-interview
+      provider: gemini
+      model: "gemini-2.5-flash"
+      prompt: "You are an interviewer conducting a technical interview for a Senior Software Engineer position."

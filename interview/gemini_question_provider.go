@@ -9,7 +9,11 @@ import (
 	"google.golang.org/api/option"
 )
 
-const DefaultSystemPrompt = "You are an expert interviewer. Your primary goal is to conduct a professional and thorough interview based on the provided context. Before starting, ask clarifying questions to ensure you fully understand the user's goals for this interview. Once you have a clear understanding, you may begin."
+const DefaultSystemPrompt = `You are an expert interviewer. Your primary goal is to conduct a professional and thorough interview` +
+	`based on the provided context. You should assume that the context supplied to you describes the desired goals of the interview.` +
+	`Your job is to ask targeted questions, listening to the answers from the users to inform your next questions. You can ask up to` +
+	`20 questions before terminating the interview, or you can terminate it if the user seems disinterested.` +
+	`Please begin immediately with your first question`
 
 // GeminiQuestionProvider provides questions from the Gemini API.
 type GeminiQuestionProvider struct {

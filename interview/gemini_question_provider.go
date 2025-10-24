@@ -9,6 +9,15 @@ import (
 	"google.golang.org/api/option"
 )
 
+// Model is a type for the Gemini model name.
+type Model string
+
+// APIKey is a type for the Gemini API key.
+type APIKey string
+
+// Prompt is a type for the interview prompt.
+type Prompt string
+
 const InterviewStructure = `You are to ask maximally one question at a time, and then wait for the users response. Then, use the
 users prompt and the information supplied in the context so far to ask the next question.`
 
@@ -31,14 +40,14 @@ func (w *generativeModelWrapper) SendMessage(ctx context.Context, parts ...genai
 }
 
 // NewGeminiQuestionProvider creates a new GeminiQuestionProvider.
-var NewGeminiQuestionProvider = func(model, apiKey, prompt string) (QuestionProvider, error) {
+func NewGeminiQuestionProvider(model Model, apiKey APIKey, prompt Prompt) (QuestionProvider, error) {
 	ctx := context.Background()
-	client, err := genai.NewClient(ctx, option.WithAPIKey(apiKey))
+	client, err := genai.NewClient(ctx, option.WithAPIKey(string(apiKey)))
 	if err != nil {
 		return nil, err
 	}
 
-	generativeModel := client.GenerativeModel(model)
+	generativeModel := client.GenerativeModel(string(model))
 	wrappedModel := &generativeModelWrapper{generativeModel}
 
 	cs := wrappedModel.StartChat()

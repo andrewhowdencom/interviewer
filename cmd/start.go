@@ -65,7 +65,7 @@ func runStart(cmd *cobra.Command, out io.Writer, config *interview.Config, topic
 		return err
 	}
 
-	ui := interview.NewTerminalUI()
+	ui := interview.InitializeTerminalUI()
 	return runInterview(out, questionProvider, ui)
 }
 
@@ -73,7 +73,7 @@ func runStart(cmd *cobra.Command, out io.Writer, config *interview.Config, topic
 func newQuestionProvider(cmd *cobra.Command, config *interview.Config, topic *interview.Topic, apiKey, model string) (interview.QuestionProvider, error) {
 	switch strings.ToLower(topic.Provider) {
 	case "static":
-		return interview.NewStaticQuestionProvider(topic.Questions), nil
+		return interview.InitializeStaticQuestionProvider(topic.Questions), nil
 	case "gemini":
 		if apiKey == "" {
 			return nil, fmt.Errorf("api-key is required for gemini provider")
@@ -81,17 +81,23 @@ func newQuestionProvider(cmd *cobra.Command, config *interview.Config, topic *in
 		if !cmd.Flags().Changed("model") && config.Providers.Gemini.Model != "" {
 			model = config.Providers.Gemini.Model
 		}
-		systemPrompt := interview.DefaultSystemPrompt
-		if config.Providers.Gemini.Interviewer.Prompt != "" {
-			systemPrompt = config.Providers.Gemini.Interviewer.Prompt
-		}
 
-		finalPrompt := fmt.Sprintf("%s\n\n%s", systemPrompt, topic.Prompt)
-		return interview.NewGeminiQuestionProvider(model, apiKey, finalPrompt)
+		finalPrompt := buildGeminiPrompt(config, topic.Prompt)
+		return interview.InitializeGeminiQuestionProvider(interview.Model(model), interview.APIKey(apiKey), interview.Prompt(finalPrompt))
 	default:
 		return nil, fmt.Errorf("unknown provider '%s'", topic.Provider)
 	}
 }
+
+// buildGeminiPrompt constructs the final prompt for the Gemini provider.
+func buildGeminiPrompt(config *interview.Config, topicPrompt string) string {
+	systemPrompt := interview.DefaultSystemPrompt
+	if config.Providers.Gemini.Interviewer.Prompt != "" {
+		systemPrompt = config.Providers.Gemini.Interviewer.Prompt
+	}
+	return fmt.Sprintf("%s\n\n%s", systemPrompt, topicPrompt)
+}
+
 
 // runInterview executes the interview loop.
 func runInterview(out io.Writer, questionProvider interview.QuestionProvider, ui interview.InterviewUI) error {
@@ -128,4 +134,3 @@ func runInterview(out io.Writer, questionProvider interview.QuestionProvider, ui
 	ui.DisplaySummary(qas)
 	return nil
 }
-

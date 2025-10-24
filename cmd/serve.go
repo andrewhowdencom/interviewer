@@ -132,29 +132,9 @@ func handleSlashCommand(cmd *cobra.Command, api *slack.Client, s slack.SlashComm
 	}
 	mu.Unlock()
 
-	var questionProvider interview.QuestionProvider
-	var err error
-	switch strings.ToLower(selectedTopic.Provider) {
-	case "static":
-		slog.Debug("Creating static question provider")
-		questionProvider = interview.NewStaticQuestionProvider(selectedTopic.Questions)
-	case "gemini":
-		slog.Debug("Creating gemini question provider")
-		if apiKey == "" {
-			slog.Error("api-key is required for gemini provider")
-			return
-		}
-		model := viper.GetString("model")
-		if !cmd.Flags().Changed("model") && config.Providers.Gemini.Model != "" {
-			model = config.Providers.Gemini.Model
-		}
-		questionProvider, err = interview.NewGeminiQuestionProvider(model, apiKey, selectedTopic.Prompt)
-		if err != nil {
-			slog.Error("Error creating gemini provider", "error", err)
-			return
-		}
-	default:
-		slog.Error("Unknown provider", "provider", selectedTopic.Provider)
+	questionProvider, err := newQuestionProvider(cmd, &config, selectedTopic, apiKey, viper.GetString("model"))
+	if err != nil {
+		slog.Error("Error creating question provider", "error", err)
 		return
 	}
 
@@ -167,7 +147,7 @@ func handleSlashCommand(cmd *cobra.Command, api *slack.Client, s slack.SlashComm
 	}
 	slog.Debug("Conversation opened", "channel_id", channel.ID)
 
-	ui := interview.NewSlackUI(api, channel.ID, s.UserID)
+	ui := interview.InitializeSlackUI(api, interview.ChannelID(channel.ID), interview.UserID(s.UserID))
 	mu.Lock()
 	activeInterviews[s.UserID] = ui
 	mu.Unlock()

@@ -1,10 +1,8 @@
-/*
-Copyright © 2025 NAME HERE <EMAIL ADDRESS>
-*/
 package cmd
 
 import (
 	"fmt"
+	"io"
 	"strings"
 
 	interview "github.com/andrewhowdencom/vox/interview"
@@ -12,73 +10,85 @@ import (
 	"github.com/spf13/viper"
 )
 
-// startCmd represents the start command
-var startCmd = &cobra.Command{
-	Use:   "start",
-	Short: "Starts a new interview",
-	Long:  `Starts a new interview with a candidate.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		var config interview.Config
-		if err := viper.Unmarshal(&config); err != nil {
-			cmd.ErrOrStderr().Write([]byte(fmt.Sprintf("Error unmarshalling config: %v\n", err)))
-			return
-		}
-
-		topicID := viper.GetString("topic")
-
-		if topicID == "" {
-			cmd.Println("Please specify a topic using --topic. Available topics:")
-			for _, t := range config.Interviews {
-				cmd.Printf(" - %s: %s\n", t.ID, t.Name)
+// newStartCmd creates a new cobra command for the "start" command.
+func newStartCmd(out io.Writer) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "start",
+		Short: "Starts a new interview",
+		Long:  `Starts a new interview with a candidate.`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			var config interview.Config
+			if err := viper.Unmarshal(&config); err != nil {
+				return fmt.Errorf("error unmarshalling config: %w", err)
 			}
-			return
-		}
 
-		var selectedTopic *interview.Topic
-		for i, t := range config.Interviews {
-			if strings.EqualFold(t.ID, topicID) {
-				selectedTopic = &config.Interviews[i]
-				break
-			}
-		}
-
-		if selectedTopic == nil {
-			cmd.ErrOrStderr().Write([]byte(fmt.Sprintf("Error: topic '%s' not found\n", topicID)))
-			return
-		}
-
-		var questionProvider interview.QuestionProvider
-		var err error
-
-		switch strings.ToLower(selectedTopic.Provider) {
-		case "static":
-			questionProvider = interview.NewStaticQuestionProvider(selectedTopic.Questions)
-		case "gemini":
+			topicID := viper.GetString("topic")
 			apiKey := viper.GetString("api-key")
-			if apiKey == "" {
-				cmd.ErrOrStderr().Write([]byte("Error: api-key is required for gemini provider\n"))
-				return
-			}
 			model := viper.GetString("model")
-			if !cmd.Flags().Changed("model") && config.Providers.Gemini.Model != "" {
-				model = config.Providers.Gemini.Model
-			}
-			questionProvider, err = interview.NewGeminiQuestionProvider(model, apiKey, selectedTopic.Prompt)
-			if err != nil {
-				cmd.ErrOrStderr().Write([]byte(fmt.Sprintf("Error creating gemini provider: %v\n", err)))
-				return
-			}
-		default:
-			cmd.ErrOrStderr().Write([]byte(fmt.Sprintf("Error: unknown provider '%s'\n", selectedTopic.Provider)))
-			return
-		}
 
-		ui := interview.NewTerminalUI()
-		runInterview(cmd, questionProvider, ui)
-	},
+			return runStart(cmd, out, &config, topicID, apiKey, model)
+		},
+	}
+
+	cmd.Flags().String("topic", "", "The topic of the interview to start")
+	cmd.Flags().String("api-key", "", "The API key for the gemini provider")
+	cmd.Flags().String("model", "gemini-1.5-flash", "The model to use for the gemini provider")
+	viper.BindPFlags(cmd.Flags())
+
+	return cmd
 }
 
-func runInterview(cmd *cobra.Command, questionProvider interview.QuestionProvider, ui interview.InterviewUI) {
+// runStart is the main logic for the "start" command.
+func runStart(cmd *cobra.Command, out io.Writer, config *interview.Config, topicID, apiKey, model string) error {
+	if topicID == "" {
+		fmt.Fprintln(out, "Please specify a topic using --topic. Available topics:")
+		for _, t := range config.Interviews {
+			fmt.Fprintf(out, " - %s: %s\n", t.ID, t.Name)
+		}
+		return nil
+	}
+
+	var selectedTopic *interview.Topic
+	for i, t := range config.Interviews {
+		if strings.EqualFold(t.ID, topicID) {
+			selectedTopic = &config.Interviews[i]
+			break
+		}
+	}
+
+	if selectedTopic == nil {
+		return fmt.Errorf("topic '%s' not found", topicID)
+	}
+
+	questionProvider, err := newQuestionProvider(cmd, config, selectedTopic, apiKey, model)
+	if err != nil {
+		return err
+	}
+
+	ui := interview.NewTerminalUI()
+	return runInterview(out, questionProvider, ui)
+}
+
+// newQuestionProvider creates a QuestionProvider based on the selected topic.
+func newQuestionProvider(cmd *cobra.Command, config *interview.Config, topic *interview.Topic, apiKey, model string) (interview.QuestionProvider, error) {
+	switch strings.ToLower(topic.Provider) {
+	case "static":
+		return interview.NewStaticQuestionProvider(topic.Questions), nil
+	case "gemini":
+		if apiKey == "" {
+			return nil, fmt.Errorf("api-key is required for gemini provider")
+		}
+		if !cmd.Flags().Changed("model") && config.Providers.Gemini.Model != "" {
+			model = config.Providers.Gemini.Model
+		}
+		return interview.NewGeminiQuestionProvider(model, apiKey, topic.Prompt)
+	default:
+		return nil, fmt.Errorf("unknown provider '%s'", topic.Provider)
+	}
+}
+
+// runInterview executes the interview loop.
+func runInterview(out io.Writer, questionProvider interview.QuestionProvider, ui interview.InterviewUI) error {
 	var qas []interview.QuestionAndAnswer
 	var answer string
 	var err error
@@ -91,8 +101,7 @@ func runInterview(cmd *cobra.Command, questionProvider interview.QuestionProvide
 
 		answer, err = ui.Ask(question)
 		if err != nil {
-			cmd.ErrOrStderr().Write([]byte("Error asking question: " + err.Error()))
-			return
+			return fmt.Errorf("error asking question: %w", err)
 		}
 
 		qas = append(qas, interview.QuestionAndAnswer{
@@ -104,19 +113,13 @@ func runInterview(cmd *cobra.Command, questionProvider interview.QuestionProvide
 	if gp, ok := questionProvider.(*interview.GeminiQuestionProvider); ok {
 		summary := gp.Summary()
 		if summary != "" {
-			fmt.Println("\n--- Gemini Summary ---")
-			fmt.Println(summary)
-			fmt.Println("--------------------")
+			fmt.Fprintln(out, "\n--- Gemini Summary ---")
+			fmt.Fprintln(out, summary)
+			fmt.Fprintln(out, "--------------------")
 		}
 	}
 
 	ui.DisplaySummary(qas)
+	return nil
 }
 
-func init() {
-	interviewCmd.AddCommand(startCmd)
-	startCmd.Flags().String("topic", "", "The topic of the interview to start")
-	startCmd.Flags().String("api-key", "", "The API key for the gemini provider")
-	startCmd.Flags().String("model", "gemini-2.5-flash", "The model to use for the gemini provider")
-	viper.BindPFlags(startCmd.Flags())
-}

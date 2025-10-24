@@ -3,6 +3,7 @@ module github.com/andrewhowdencom/vox
 go 1.24.3
 
 require (
+	github.com/adrg/xdg v0.5.3
 	github.com/google/generative-ai-go v0.20.1
 	github.com/slack-go/slack v0.17.3
 	github.com/spf13/cobra v1.10.1

@@ -166,7 +166,9 @@ func handleSlashCommand(cmd *cobra.Command, api *slack.Client, s slack.SlashComm
 	}()
 
 	log.Printf("Starting interview for user %s", s.UserID)
-	runInterview(cmd, questionProvider, ui)
+	if err := runInterview(cmd.OutOrStdout(), questionProvider, ui); err != nil {
+		log.Printf("Error running interview: %v", err)
+	}
 }
 
 func createSlackEventHandler(signingSecret string, api *slack.Client, cmd *cobra.Command) http.HandlerFunc {

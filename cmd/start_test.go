@@ -58,7 +58,10 @@ func TestRunInterview(t *testing.T) {
 	cmd.SetOut(buf)
 	cmd.SetErr(buf)
 
-	runInterview(cmd, mockProvider, mockUI)
+	err := runInterview(cmd.OutOrStdout(), mockProvider, mockUI)
+	if err != nil {
+		t.Fatalf("runInterview failed: %v", err)
+	}
 
 	expectedSummary := "Q: q1\nA: a1\nQ: q2\nA: a2\n"
 	if mockUI.summary.String() != expectedSummary {

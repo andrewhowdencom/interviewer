@@ -2,7 +2,18 @@ package interview
 
 // Config represents the top-level configuration structure.
 type Config struct {
-	Interviews []Topic `mapstructure:"interviews"`
+	Providers  Providers `mapstructure:"providers"`
+	Interviews []Topic   `mapstructure:"interviews"`
+}
+
+// Providers defines the structure for provider configurations.
+type Providers struct {
+	Gemini Gemini `mapstructure:"gemini"`
+}
+
+// Gemini defines the structure for Gemini provider configuration.
+type Gemini struct {
+	Model string `mapstructure:"model"`
 }
 
 // Topic defines the structure for a single interview topic.

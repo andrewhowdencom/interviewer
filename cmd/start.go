@@ -60,7 +60,11 @@ var startCmd = &cobra.Command{
 				cmd.ErrOrStderr().Write([]byte("Error: api-key is required for gemini provider\n"))
 				return
 			}
-			questionProvider, err = interview.NewGeminiQuestionProvider("gemini-1.5-flash", apiKey, selectedTopic.Prompt)
+			model := viper.GetString("model")
+			if !cmd.Flags().Changed("model") && config.Providers.Gemini.Model != "" {
+				model = config.Providers.Gemini.Model
+			}
+			questionProvider, err = interview.NewGeminiQuestionProvider(model, apiKey, selectedTopic.Prompt)
 			if err != nil {
 				cmd.ErrOrStderr().Write([]byte(fmt.Sprintf("Error creating gemini provider: %v\n", err)))
 				return
@@ -114,5 +118,6 @@ func init() {
 	interviewCmd.AddCommand(startCmd)
 	startCmd.Flags().String("topic", "", "The topic of the interview to start")
 	startCmd.Flags().String("api-key", "", "The API key for the gemini provider")
+	startCmd.Flags().String("model", "gemini-2.5-flash", "The model to use for the gemini provider")
 	viper.BindPFlags(startCmd.Flags())
 }

@@ -1,4 +1,4 @@
-module github.com/andrewhowdencom/interviewer
+module github.com/andrewhowdencom/vox
 
 go 1.24.3
 

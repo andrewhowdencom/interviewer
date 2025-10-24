@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 	"github.com/spf13/cobra"
-	"github.com/andrewhowdencom/interviewer/interview"
+	"github.com/andrewhowdencom/vox/interview"
 )
 
 // MockQuestionProvider is a mock implementation of the QuestionProvider interface for testing.

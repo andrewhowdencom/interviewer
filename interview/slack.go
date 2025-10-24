@@ -2,6 +2,7 @@ package interview
 
 import (
 	"fmt"
+	"log/slog"
 	"strings"
 
 	"github.com/slack-go/slack"
@@ -27,12 +28,16 @@ func NewSlackUI(client *slack.Client, channelID, userID string) *SlackUI {
 
 // Ask sends a question to the user on Slack and waits for their answer.
 func (s *SlackUI) Ask(question string) (string, error) {
+	slog.Debug("Asking question on slack", "channel_id", s.ChannelID, "user_id", s.UserID, "question", question)
 	_, _, err := s.Client.PostMessage(s.ChannelID, slack.MsgOptionText(question, false))
 	if err != nil {
+		slog.Error("Failed to post message to slack", "error", err, "channel_id", s.ChannelID, "user_id", s.UserID)
 		return "", fmt.Errorf("failed to post message to slack: %w", err)
 	}
 	// Wait for the answer from the event handler via the channel
+	slog.Debug("Waiting for answer from user", "channel_id", s.ChannelID, "user_id", s.UserID)
 	answer := <-s.AnswerChan
+	slog.Debug("Received answer from user", "channel_id", s.ChannelID, "user_id", s.UserID, "answer", answer)
 	return answer, nil
 }
 
@@ -45,11 +50,10 @@ func (s *SlackUI) DisplaySummary(qas []QuestionAndAnswer) {
 		summary.WriteString(fmt.Sprintf("*A:* %s\n", qa.Answer))
 	}
 	summary.WriteString("*-----------------------*\n")
+	slog.Debug("Displaying summary on slack", "channel_id", s.ChannelID, "user_id", s.UserID, "summary", summary.String())
 
 	_, _, err := s.Client.PostMessage(s.ChannelID, slack.MsgOptionText(summary.String(), false))
 	if err != nil {
-		// We can't return an error here, so we'll just log it.
-		// In a real application, you'd want to use a proper logger.
-		fmt.Printf("Error displaying summary: %v\n", err)
+		slog.Error("Error displaying summary", "error", err, "channel_id", s.ChannelID, "user_id", s.UserID)
 	}
 }

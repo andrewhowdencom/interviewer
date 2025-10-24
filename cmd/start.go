@@ -1,6 +1,5 @@
 /*
 Copyright © 2025 NAME HERE <EMAIL ADDRESS>
-
 */
 package cmd
 
@@ -8,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/andrewhowdencom/vox/interview"
+	interview "github.com/andrewhowdencom/vox/interview"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

@@ -8,8 +8,6 @@ require (
 	google.golang.org/api v0.186.0
 )
 
-replace github.com/andrewhowdencom/vox => ./
-
 require (
 	cloud.google.com/go v0.115.0 // indirect
 	cloud.google.com/go/ai v0.8.0 // indirect

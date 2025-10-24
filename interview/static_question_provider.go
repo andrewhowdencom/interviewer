@@ -6,14 +6,10 @@ type StaticQuestionProvider struct {
 	currentIndex int
 }
 
-// NewStaticQuestionProvider creates a new StaticQuestionProvider with a hardcoded list of questions.
-func NewStaticQuestionProvider() *StaticQuestionProvider {
+// NewStaticQuestionProvider creates a new StaticQuestionProvider.
+func NewStaticQuestionProvider(questions []string) *StaticQuestionProvider {
 	return &StaticQuestionProvider{
-		questions: []string{
-			"how are you",
-			"what color is the sky",
-			"how do you feel about yellow",
-		},
+		questions: questions,
 	}
 }
 

@@ -29,7 +29,7 @@ func (w *generativeModelWrapper) SendMessage(ctx context.Context, parts ...genai
 
 
 // NewGeminiQuestionProvider creates a new GeminiQuestionProvider.
-func NewGeminiQuestionProvider(model, apiKey string) (*GeminiQuestionProvider, error) {
+func NewGeminiQuestionProvider(model, apiKey, prompt string) (*GeminiQuestionProvider, error) {
 	ctx := context.Background()
 	client, err := genai.NewClient(ctx, option.WithAPIKey(apiKey))
 	if err != nil {
@@ -43,7 +43,7 @@ func NewGeminiQuestionProvider(model, apiKey string) (*GeminiQuestionProvider, e
 	cs.History = []*genai.Content{
 		{
 			Parts: []genai.Part{
-				genai.Text("You are an interviewer. Your goal is to conduct a conversational interview. Ask questions to get to know the candidate. When you feel the interview is complete, end your response with the exact phrase INTERVIEW_COMPLETE"),
+				genai.Text(prompt),
 			},
 			Role: "user",
 		},

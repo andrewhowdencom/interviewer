@@ -1,0 +1,12 @@
+interviews:
+  - id: "backend-engineer-screening"
+    name: "Backend Engineer Screening"
+    provider: "static"
+    questions:
+      - "What is the difference between a mutex and a semaphore?"
+      - "How would you design a rate limiter?"
+      - "What is the CAP theorem?"
+  - id: "behavioral-interview"
+    name: "Behavioral Interview"
+    provider: "gemini"
+    prompt: "You are an interviewer conducting a behavioral interview for a senior software engineer. Start with a question about a challenging project the candidate has worked on. Ask follow-up questions to understand the situation, the candidate's role, the actions they took, and the result of their actions. When you feel the interview is complete, end your response with the exact phrase INTERVIEW_COMPLETE"

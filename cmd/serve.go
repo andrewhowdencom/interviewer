@@ -88,11 +88,11 @@ func createSlashCommandHandler(signingSecret string, api *slack.Client, cmd *cob
 
 func handleSlashCommand(cmd *cobra.Command, api *slack.Client, s slack.SlashCommand) {
 	args := strings.Fields(s.Text)
-	if len(args) == 0 || args[0] != "start" || len(args) < 3 || args[1] != "--topic" {
-		api.PostEphemeral(s.ChannelID, s.UserID, slack.MsgOptionText("Usage: /interview start --topic <topic-id>", false))
+	if len(args) < 4 || args[0] != "interview" || args[1] != "start" || args[2] != "--topic" {
+		api.PostEphemeral(s.ChannelID, s.UserID, slack.MsgOptionText("Usage: /vox interview start --topic <topic-id>", false))
 		return
 	}
-	topicID := args[2]
+	topicID := args[3]
 
 	var config interview.Config
 	if err := viper.Unmarshal(&config); err != nil {

@@ -40,11 +40,12 @@ var serveCmd = &cobra.Command{
 		if signingSecret == "" {
 			log.Fatal("slack-signing-secret is required")
 		}
+		apiKey := viper.GetString("api-key")
 
 		api := slack.New(botToken)
 
 		http.HandleFunc("/slack/events", createSlackEventHandler(signingSecret, api, cmd))
-		http.HandleFunc("/slack/commands", createSlashCommandHandler(signingSecret, api, cmd))
+		http.HandleFunc("/slack/commands", createSlashCommandHandler(signingSecret, api, cmd, apiKey))
 
 		log.Printf("Server starting on port %d", port)
 		if err := http.ListenAndServe(fmt.Sprintf(":%d", port), nil); err != nil {
@@ -53,7 +54,7 @@ var serveCmd = &cobra.Command{
 	},
 }
 
-func createSlashCommandHandler(signingSecret string, api *slack.Client, cmd *cobra.Command) http.HandlerFunc {
+func createSlashCommandHandler(signingSecret string, api *slack.Client, cmd *cobra.Command, apiKey string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		verifier, err := slack.NewSecretsVerifier(r.Header, signingSecret)
 		if err != nil {
@@ -81,12 +82,12 @@ func createSlashCommandHandler(signingSecret string, api *slack.Client, cmd *cob
 			return
 		}
 
-		go handleSlashCommand(cmd, api, s)
+		go handleSlashCommand(cmd, api, s, apiKey)
 		w.WriteHeader(http.StatusOK)
 	}
 }
 
-func handleSlashCommand(cmd *cobra.Command, api *slack.Client, s slack.SlashCommand) {
+func handleSlashCommand(cmd *cobra.Command, api *slack.Client, s slack.SlashCommand, apiKey string) {
 	args := strings.Fields(s.Text)
 	if len(args) < 4 || args[0] != "interview" || args[1] != "start" || args[2] != "--topic" {
 		api.PostEphemeral(s.ChannelID, s.UserID, slack.MsgOptionText("Usage: /vox interview start --topic <topic-id>", false))
@@ -127,7 +128,6 @@ func handleSlashCommand(cmd *cobra.Command, api *slack.Client, s slack.SlashComm
 	case "static":
 		questionProvider = interview.NewStaticQuestionProvider(selectedTopic.Questions)
 	case "gemini":
-		apiKey := viper.GetString("api-key")
 		if apiKey == "" {
 			log.Println("Error: api-key is required for gemini provider")
 			return
@@ -240,5 +240,6 @@ func init() {
 	serveCmd.Flags().Int("port", 3000, "The port to listen on for Slack events")
 	serveCmd.Flags().String("slack-bot-token", "", "The Slack bot token")
 	serveCmd.Flags().String("slack-signing-secret", "", "The Slack signing secret")
+	serveCmd.Flags().String("api-key", "", "The API key for the gemini provider")
 	viper.BindPFlags(serveCmd.Flags())
 }

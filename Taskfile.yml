@@ -1,0 +1,24 @@
+# Taskfile.yml
+version: '3'
+
+tasks:
+  build:
+    desc: "Build the application"
+    cmds:
+      - go build -o vox .
+
+  test:
+    desc: "Run all tests"
+    cmds:
+      - go test ./...
+
+  lint:
+    desc: "Lint the code"
+    cmds:
+      - go run github.com/golangci/golangci-lint/cmd/golangci-lint@latest run
+
+  validate:
+    desc: "Run tests and lint"
+    cmds:
+      - task: test
+      - task: lint

@@ -1,63 +1,25 @@
 package cmd
 
 import (
-	"bytes"
 	"fmt"
 	"testing"
 
 	interview "github.com/andrewhowdencom/vox/interview"
-	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 )
 
-// Mock GeminiQuestionProvider for testing
-type MockGeminiQuestionProvider struct {
-	interview.QuestionProvider
-	model  string
-	apiKey string
-	prompt string
-}
+func TestBuildGeminiPrompt(t *testing.T) {
+	t.Run("should use the default system prompt when no custom prompt is configured", func(t *testing.T) {
+		config := &interview.Config{}
+		topicPrompt := "Topic-specific prompt"
 
-func (m *MockGeminiQuestionProvider) NextQuestion(previousAnswer string) (string, bool) {
-	return "", false
-}
+		expectedPrompt := fmt.Sprintf("%s\n\n%s", interview.DefaultSystemPrompt, topicPrompt)
+		actualPrompt := buildGeminiPrompt(config, topicPrompt)
 
-func (m *MockGeminiQuestionProvider) Summary() string {
-	return ""
-}
-
-func newMockGeminiQuestionProvider(model, apiKey, prompt string) (interview.QuestionProvider, error) {
-	return &MockGeminiQuestionProvider{model: model, apiKey: apiKey, prompt: prompt}, nil
-}
-
-func TestNewQuestionProvider(t *testing.T) {
-	// a dummy command
-	cmd := &cobra.Command{}
-	out := &bytes.Buffer{}
-	cmd.SetOut(out)
-
-	t.Run("should prepend the default system prompt when no custom prompt is configured", func(t *testing.T) {
-		config := &interview.Config{
-			Interviews: []interview.Topic{
-				{ID: "test", Provider: "gemini", Prompt: "Topic-specific prompt"},
-			},
-		}
-
-		// replace the real function with the mock
-		originalNewGeminiQuestionProvider := interview.NewGeminiQuestionProvider
-		interview.NewGeminiQuestionProvider = newMockGeminiQuestionProvider
-		defer func() { interview.NewGeminiQuestionProvider = originalNewGeminiQuestionProvider }()
-
-
-		provider, err := newQuestionProvider(cmd, config, &config.Interviews[0], "test-api-key", "test-model")
-		assert.NoError(t, err)
-
-		mockProvider := provider.(*MockGeminiQuestionProvider)
-		expectedPrompt := fmt.Sprintf("%s\n\n%s", interview.DefaultSystemPrompt, "Topic-specific prompt")
-		assert.Equal(t, expectedPrompt, mockProvider.prompt)
+		assert.Equal(t, expectedPrompt, actualPrompt)
 	})
 
-	t.Run("should prepend a custom system prompt when one is configured", func(t *testing.T) {
+	t.Run("should use a custom system prompt when one is configured", func(t *testing.T) {
 		config := &interview.Config{
 			Providers: interview.Providers{
 				Gemini: interview.Gemini{
@@ -66,21 +28,12 @@ func TestNewQuestionProvider(t *testing.T) {
 					},
 				},
 			},
-			Interviews: []interview.Topic{
-				{ID: "test", Provider: "gemini", Prompt: "Topic-specific prompt"},
-			},
 		}
+		topicPrompt := "Topic-specific prompt"
 
-		// replace the real function with the mock
-		originalNewGeminiQuestionProvider := interview.NewGeminiQuestionProvider
-		interview.NewGeminiQuestionProvider = newMockGeminiQuestionProvider
-		defer func() { interview.NewGeminiQuestionProvider = originalNewGeminiQuestionProvider }()
-
-		provider, err := newQuestionProvider(cmd, config, &config.Interviews[0], "test-api-key", "test-model")
-		assert.NoError(t, err)
-
-		mockProvider := provider.(*MockGeminiQuestionProvider)
 		expectedPrompt := "Custom system prompt\n\nTopic-specific prompt"
-		assert.Equal(t, expectedPrompt, mockProvider.prompt)
+		actualPrompt := buildGeminiPrompt(config, topicPrompt)
+
+		assert.Equal(t, expectedPrompt, actualPrompt)
 	})
 }

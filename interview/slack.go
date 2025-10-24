@@ -8,16 +8,22 @@ import (
 	"github.com/slack-go/slack"
 )
 
+// ChannelID is a type for Slack channel IDs.
+type ChannelID string
+
+// UserID is a type for Slack user IDs.
+type UserID string
+
 // SlackUI handles the user interface for the interview in Slack.
 type SlackUI struct {
-	Client     *slack.Client
-	ChannelID  string
-	UserID     string
+	Client     SlackClient
+	ChannelID  ChannelID
+	UserID     UserID
 	AnswerChan chan string
 }
 
 // NewSlackUI creates a new SlackUI.
-func NewSlackUI(client *slack.Client, channelID, userID string) *SlackUI {
+func NewSlackUI(client SlackClient, channelID ChannelID, userID UserID) *SlackUI {
 	return &SlackUI{
 		Client:     client,
 		ChannelID:  channelID,
@@ -29,7 +35,7 @@ func NewSlackUI(client *slack.Client, channelID, userID string) *SlackUI {
 // Ask sends a question to the user on Slack and waits for their answer.
 func (s *SlackUI) Ask(question string) (string, error) {
 	slog.Debug("Asking question on slack", "channel_id", s.ChannelID, "user_id", s.UserID, "question", question)
-	_, _, err := s.Client.PostMessage(s.ChannelID, slack.MsgOptionText(question, false))
+	_, _, err := s.Client.PostMessage(string(s.ChannelID), slack.MsgOptionText(question, false))
 	if err != nil {
 		slog.Error("Failed to post message to slack", "error", err, "channel_id", s.ChannelID, "user_id", s.UserID)
 		return "", fmt.Errorf("failed to post message to slack: %w", err)
@@ -52,7 +58,7 @@ func (s *SlackUI) DisplaySummary(qas []QuestionAndAnswer) {
 	summary.WriteString("*-----------------------*\n")
 	slog.Debug("Displaying summary on slack", "channel_id", s.ChannelID, "user_id", s.UserID, "summary", summary.String())
 
-	_, _, err := s.Client.PostMessage(s.ChannelID, slack.MsgOptionText(summary.String(), false))
+	_, _, err := s.Client.PostMessage(string(s.ChannelID), slack.MsgOptionText(summary.String(), false))
 	if err != nil {
 		slog.Error("Error displaying summary", "error", err, "channel_id", s.ChannelID, "user_id", s.UserID)
 	}

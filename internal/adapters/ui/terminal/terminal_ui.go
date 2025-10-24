@@ -1,21 +1,23 @@
-package interview
+package terminal
 
 import (
 	"bufio"
 	"fmt"
 	"os"
+
+	"github.com/andrewhowdencom/vox/internal/domain/interview"
 )
 
-// TerminalUI handles the user interface for the interview in the terminal.
-type TerminalUI struct{}
+// UI handles the user interface for the interview in the terminal.
+type UI struct{}
 
-// NewTerminalUI creates a new TerminalUI.
-func NewTerminalUI() *TerminalUI {
-	return &TerminalUI{}
+// New creates a new TerminalUI.
+func New() *UI {
+	return &UI{}
 }
 
 // Ask displays a question to the user in the terminal and returns the answer.
-func (t *TerminalUI) Ask(question string) (string, error) {
+func (t *UI) Ask(question string) (string, error) {
 	fmt.Printf("%s\n> ", question)
 	reader := bufio.NewReader(os.Stdin)
 	answer, err := reader.ReadString('\n')
@@ -27,7 +29,7 @@ func (t *TerminalUI) Ask(question string) (string, error) {
 }
 
 // DisplaySummary displays the interview summary in the terminal.
-func (t *TerminalUI) DisplaySummary(qas []QuestionAndAnswer) {
+func (t *UI) DisplaySummary(qas []interview.QuestionAndAnswer) {
 	fmt.Println("\n--- Interview Summary ---")
 	for _, qa := range qas {
 		fmt.Printf("Q: %s\n", qa.Question)
@@ -35,3 +37,6 @@ func (t *TerminalUI) DisplaySummary(qas []QuestionAndAnswer) {
 	}
 	fmt.Println("-----------------------")
 }
+
+// Ensure UI implements the domain interface.
+var _ interview.InterviewUI = (*UI)(nil)

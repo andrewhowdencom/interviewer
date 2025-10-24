@@ -1,10 +1,11 @@
-package interview
+package slack
 
 import (
 	"fmt"
 	"log/slog"
 	"strings"
 
+	"github.com/andrewhowdencom/vox/internal/domain/interview"
 	"github.com/slack-go/slack"
 )
 
@@ -14,17 +15,17 @@ type ChannelID string
 // UserID is a type for Slack user IDs.
 type UserID string
 
-// SlackUI handles the user interface for the interview in Slack.
-type SlackUI struct {
+// UI handles the user interface for the interview in Slack.
+type UI struct {
 	Client     SlackClient
 	ChannelID  ChannelID
 	UserID     UserID
 	AnswerChan chan string
 }
 
-// NewSlackUI creates a new SlackUI.
-func NewSlackUI(client SlackClient, channelID ChannelID, userID UserID) *SlackUI {
-	return &SlackUI{
+// New creates a new SlackUI.
+func New(client SlackClient, channelID ChannelID, userID UserID) *UI {
+	return &UI{
 		Client:     client,
 		ChannelID:  channelID,
 		UserID:     userID,
@@ -33,7 +34,7 @@ func NewSlackUI(client SlackClient, channelID ChannelID, userID UserID) *SlackUI
 }
 
 // Ask sends a question to the user on Slack and waits for their answer.
-func (s *SlackUI) Ask(question string) (string, error) {
+func (s *UI) Ask(question string) (string, error) {
 	slog.Debug("Asking question on slack", "channel_id", s.ChannelID, "user_id", s.UserID, "question", question)
 	_, _, err := s.Client.PostMessage(string(s.ChannelID), slack.MsgOptionText(question, false))
 	if err != nil {
@@ -48,7 +49,7 @@ func (s *SlackUI) Ask(question string) (string, error) {
 }
 
 // DisplaySummary sends the interview summary to the user on Slack.
-func (s *SlackUI) DisplaySummary(qas []QuestionAndAnswer) {
+func (s *UI) DisplaySummary(qas []interview.QuestionAndAnswer) {
 	var summary strings.Builder
 	summary.WriteString("*--- Interview Summary ---*\n")
 	for _, qa := range qas {
@@ -63,3 +64,6 @@ func (s *SlackUI) DisplaySummary(qas []QuestionAndAnswer) {
 		slog.Error("Error displaying summary", "error", err, "channel_id", s.ChannelID, "user_id", s.UserID)
 	}
 }
+
+// Ensure UI implements the domain interface.
+var _ interview.InterviewUI = (*UI)(nil)

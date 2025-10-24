@@ -1,27 +1,25 @@
-/*
-Copyright © 2025 NAME HERE <EMAIL ADDRESS>
-*/
 package cmd
 
 import (
-	"os"
-
+	"github.com/andrewhowdencom/vox/internal/ports/cli"
 	"github.com/spf13/cobra"
 )
 
-// interviewCmd represents the interview command
-var interviewCmd = &cobra.Command{
-	Use:   "interview",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+// newInterviewCmd creates the interview command and adds its subcommands.
+// This is a provider for Wire.
+func newInterviewCmd(startCmd *cobra.Command) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "interview",
+		Short: "Commands for managing interviews",
+	}
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	// The start command is now created by its own package and passed in.
+	cmd.AddCommand(startCmd)
+
+	return cmd
 }
 
-func init() {
-	interviewCmd.AddCommand(newStartCmd(os.Stdout))
-	rootCmd.AddCommand(interviewCmd)
+// provideStartCmd is a Wire provider that creates the start command.
+func provideStartCmd() *cobra.Command {
+	return cli.NewStartCmd(nil) // Passing nil for out, as cobra handles it.
 }

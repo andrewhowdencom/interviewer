@@ -47,12 +47,6 @@ func NewGeminiQuestionProvider(model, apiKey, prompt string) (*GeminiQuestionPro
 			},
 			Role: "user",
 		},
-		{
-			Parts: []genai.Part{
-				genai.Text("I understand. I am ready to begin the interview."),
-			},
-			Role: "model",
-		},
 	}
 
 	return &GeminiQuestionProvider{
@@ -70,15 +64,13 @@ func (p *GeminiQuestionProvider) NextQuestion(previousAnswer string) (string, bo
 		return "", false
 	}
 
-	// The first question is always "how are you?"
-	if p.questionCount == 0 {
-		p.questionCount++
-		return "how are you?", true
+	ctx := context.Background()
+	var parts []genai.Part
+	if previousAnswer != "" {
+		parts = append(parts, genai.Text(previousAnswer))
 	}
 
-	// Get the next question from the conversational chat
-	ctx := context.Background()
-	resp, err := p.conversational.SendMessage(ctx, genai.Text(previousAnswer))
+	resp, err := p.conversational.SendMessage(ctx, parts...)
 	if err != nil {
 		// In a real application, you'd want to handle this error more gracefully.
 		// For now, we'll just end the interview.

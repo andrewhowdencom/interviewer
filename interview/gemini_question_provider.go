@@ -9,11 +9,8 @@ import (
 	"google.golang.org/api/option"
 )
 
-const DefaultSystemPrompt = `You are an expert interviewer. Your primary goal is to conduct a professional and thorough interview` +
-	`based on the provided context. You should assume that the context supplied to you describes the desired goals of the interview.` +
-	`Your job is to ask targeted questions, listening to the answers from the users to inform your next questions. You can ask up to` +
-	`20 questions before terminating the interview, or you can terminate it if the user seems disinterested.` +
-	`Please begin immediately with your first question`
+const InterviewStructure = `You are to ask maximally one question at a time, and then wait for the users response. Then, use the
+users prompt and the information supplied in the context so far to ask the next question.`
 
 // GeminiQuestionProvider provides questions from the Gemini API.
 type GeminiQuestionProvider struct {
@@ -49,8 +46,9 @@ var NewGeminiQuestionProvider = func(model, apiKey, prompt string) (QuestionProv
 		{
 			Parts: []genai.Part{
 				genai.Text(prompt),
+				genai.Text(InterviewStructure),
 			},
-			Role: "user",
+			Role: "model",
 		},
 	}
 

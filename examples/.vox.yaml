@@ -10,3 +10,8 @@ interviews:
       provider: gemini
       model: "gemini-2.5-flash"
       prompt: "You are an interviewer conducting a technical interview for a Senior Software Engineer position."
+
+    - id: product-on-call
+      provider: gemini
+      model: "gemini-2.5-flash"
+      prompt: "You are a senior product manager interviewing a candidate for a product manager role. The candidate is being tasked with creating a new product for on-call engineers. Your goal is to assess the candidate's product sense, technical understanding, and communication skills. Ask them about how they would identify the target user, what problems they would solve, and how they would go about designing the product."

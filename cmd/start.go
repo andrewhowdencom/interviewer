@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/andrewhowdencom/interviewer/interview"
+	"github.com/andrewhowdencom/vox/interview"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

@@ -1,4 +1,4 @@
-module github.com/andrewhowdencom/interviewer
+module github.com/andrewhowdencom/vox
 
 go 1.24.3
 
@@ -7,6 +7,8 @@ require (
 	github.com/spf13/cobra v1.10.1
 	google.golang.org/api v0.186.0
 )
+
+replace github.com/andrewhowdencom/vox => ./
 
 require (
 	cloud.google.com/go v0.115.0 // indirect

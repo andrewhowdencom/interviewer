@@ -4,7 +4,7 @@ package interview
 type QuestionProvider interface {
 	// NextQuestion returns the next question in the interview.
 	// It returns the question as a string and a boolean indicating if there are more questions.
-	NextQuestion() (question string, hasMore bool)
+	NextQuestion(previousAnswer string) (question string, hasMore bool)
 }
 
 // InterviewUI is an interface for the user interface of the interview.

@@ -14,7 +14,7 @@ type MockQuestionProvider struct {
 	currentIndex int
 }
 
-func (p *MockQuestionProvider) NextQuestion() (string, bool) {
+func (p *MockQuestionProvider) NextQuestion(previousAnswer string) (string, bool) {
 	if p.currentIndex < len(p.questions) {
 		question := p.questions[p.currentIndex]
 		p.currentIndex++

@@ -20,7 +20,13 @@ type Slack struct {
 
 // Gemini defines the structure for Gemini provider configuration.
 type Gemini struct {
-	Model string `mapstructure:"model"`
+	Model       string      `mapstructure:"model"`
+	Interviewer Interviewer `mapstructure:"interviewer"`
+}
+
+// Interviewer defines the structure for the interviewer configuration.
+type Interviewer struct {
+	Prompt string `mapstructure:"prompt"`
 }
 
 // Topic defines the structure for a single interview topic.

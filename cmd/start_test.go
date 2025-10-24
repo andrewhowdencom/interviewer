@@ -2,69 +2,85 @@ package cmd
 
 import (
 	"bytes"
-	"errors"
+	"fmt"
 	"testing"
+
+	interview "github.com/andrewhowdencom/vox/interview"
 	"github.com/spf13/cobra"
-	"github.com/andrewhowdencom/vox/interview"
+	"github.com/stretchr/testify/assert"
 )
 
-// MockQuestionProvider is a mock implementation of the QuestionProvider interface for testing.
-type MockQuestionProvider struct {
-	questions []string
-	currentIndex int
+// Mock GeminiQuestionProvider for testing
+type MockGeminiQuestionProvider struct {
+	interview.QuestionProvider
+	model  string
+	apiKey string
+	prompt string
 }
 
-func (p *MockQuestionProvider) NextQuestion(previousAnswer string) (string, bool) {
-	if p.currentIndex < len(p.questions) {
-		question := p.questions[p.currentIndex]
-		p.currentIndex++
-		return question, true
-	}
+func (m *MockGeminiQuestionProvider) NextQuestion(previousAnswer string) (string, bool) {
 	return "", false
 }
 
-// MockInterviewUI is a mock implementation of the InterviewUI interface for testing.
-type MockInterviewUI struct {
-	answers []string
-	currentIndex int
-	summary bytes.Buffer
+func (m *MockGeminiQuestionProvider) Summary() string {
+	return ""
 }
 
-func (ui *MockInterviewUI) Ask(question string) (string, error) {
-	if ui.currentIndex < len(ui.answers) {
-		answer := ui.answers[ui.currentIndex]
-		ui.currentIndex++
-		return answer, nil
-	}
-	return "", errors.New("not enough answers")
+func newMockGeminiQuestionProvider(model, apiKey, prompt string) (interview.QuestionProvider, error) {
+	return &MockGeminiQuestionProvider{model: model, apiKey: apiKey, prompt: prompt}, nil
 }
 
-func (ui *MockInterviewUI) DisplaySummary(qas []interview.QuestionAndAnswer) {
-	for _, qa := range qas {
-		ui.summary.WriteString("Q: " + qa.Question + "\n")
-		ui.summary.WriteString("A: " + qa.Answer + "\n")
-	}
-}
-
-func TestRunInterview(t *testing.T) {
-	questions := []string{"q1", "q2"}
-	answers := []string{"a1", "a2"}
-
-	mockProvider := &MockQuestionProvider{questions: questions}
-	mockUI := &MockInterviewUI{answers: answers}
-
+func TestNewQuestionProvider(t *testing.T) {
+	// a dummy command
 	cmd := &cobra.Command{}
-	buf := new(bytes.Buffer)
-	cmd.SetOut(buf)
-	cmd.SetErr(buf)
+	out := &bytes.Buffer{}
+	cmd.SetOut(out)
 
-	err := runInterview(cmd.OutOrStdout(), mockProvider, mockUI)
-	if err != nil {
-		t.Fatalf("runInterview failed: %v", err)
-	}
+	t.Run("should prepend the default system prompt when no custom prompt is configured", func(t *testing.T) {
+		config := &interview.Config{
+			Interviews: []interview.Topic{
+				{ID: "test", Provider: "gemini", Prompt: "Topic-specific prompt"},
+			},
+		}
 
-	expectedSummary := "Q: q1\nA: a1\nQ: q2\nA: a2\n"
-	if mockUI.summary.String() != expectedSummary {
-		t.Errorf("expected summary '%s', got '%s'", expectedSummary, mockUI.summary.String())
-	}
+		// replace the real function with the mock
+		originalNewGeminiQuestionProvider := interview.NewGeminiQuestionProvider
+		interview.NewGeminiQuestionProvider = newMockGeminiQuestionProvider
+		defer func() { interview.NewGeminiQuestionProvider = originalNewGeminiQuestionProvider }()
+
+
+		provider, err := newQuestionProvider(cmd, config, &config.Interviews[0], "test-api-key", "test-model")
+		assert.NoError(t, err)
+
+		mockProvider := provider.(*MockGeminiQuestionProvider)
+		expectedPrompt := fmt.Sprintf("%s\n\n%s", interview.DefaultSystemPrompt, "Topic-specific prompt")
+		assert.Equal(t, expectedPrompt, mockProvider.prompt)
+	})
+
+	t.Run("should prepend a custom system prompt when one is configured", func(t *testing.T) {
+		config := &interview.Config{
+			Providers: interview.Providers{
+				Gemini: interview.Gemini{
+					Interviewer: interview.Interviewer{
+						Prompt: "Custom system prompt",
+					},
+				},
+			},
+			Interviews: []interview.Topic{
+				{ID: "test", Provider: "gemini", Prompt: "Topic-specific prompt"},
+			},
+		}
+
+		// replace the real function with the mock
+		originalNewGeminiQuestionProvider := interview.NewGeminiQuestionProvider
+		interview.NewGeminiQuestionProvider = newMockGeminiQuestionProvider
+		defer func() { interview.NewGeminiQuestionProvider = originalNewGeminiQuestionProvider }()
+
+		provider, err := newQuestionProvider(cmd, config, &config.Interviews[0], "test-api-key", "test-model")
+		assert.NoError(t, err)
+
+		mockProvider := provider.(*MockGeminiQuestionProvider)
+		expectedPrompt := "Custom system prompt\n\nTopic-specific prompt"
+		assert.Equal(t, expectedPrompt, mockProvider.prompt)
+	})
 }

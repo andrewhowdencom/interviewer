@@ -5,8 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 
@@ -34,11 +35,13 @@ var serveCmd = &cobra.Command{
 
 		botToken := viper.GetString("slack-bot-token")
 		if botToken == "" {
-			log.Fatal("slack-bot-token is required")
+			slog.Error("slack-bot-token is required")
+			os.Exit(1)
 		}
 		signingSecret := viper.GetString("slack-signing-secret")
 		if signingSecret == "" {
-			log.Fatal("slack-signing-secret is required")
+			slog.Error("slack-signing-secret is required")
+			os.Exit(1)
 		}
 		apiKey := viper.GetString("api-key")
 
@@ -47,9 +50,10 @@ var serveCmd = &cobra.Command{
 		http.HandleFunc("/slack/events", createSlackEventHandler(signingSecret, api, cmd))
 		http.HandleFunc("/slack/commands", createSlashCommandHandler(signingSecret, api, cmd, apiKey))
 
-		log.Printf("Server starting on port %d", port)
+		slog.Info("Server starting", "port", port)
 		if err := http.ListenAndServe(fmt.Sprintf(":%d", port), nil); err != nil {
-			log.Fatalf("Error starting server: %v", err)
+			slog.Error("Error starting server", "error", err)
+			os.Exit(1)
 		}
 	},
 }
@@ -58,19 +62,19 @@ func createSlashCommandHandler(signingSecret string, api *slack.Client, cmd *cob
 	return func(w http.ResponseWriter, r *http.Request) {
 		verifier, err := slack.NewSecretsVerifier(r.Header, signingSecret)
 		if err != nil {
-			log.Printf("Error creating secrets verifier: %v", err)
+			slog.Error("Error creating secrets verifier", "error", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
-			log.Printf("Error reading request body: %v", err)
+			slog.Error("Error reading request body", "error", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 		verifier.Write(body)
 		if err := verifier.Ensure(); err != nil {
-			log.Printf("Error verifying request signature: %v", err)
+			slog.Error("Error verifying request signature", "error", err)
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -78,6 +82,7 @@ func createSlashCommandHandler(signingSecret string, api *slack.Client, cmd *cob
 		r.Body = io.NopCloser(bytes.NewBuffer(body))
 		s, err := slack.SlashCommandParse(r)
 		if err != nil {
+			slog.Error("Error parsing slash command", "error", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -88,16 +93,19 @@ func createSlashCommandHandler(signingSecret string, api *slack.Client, cmd *cob
 }
 
 func handleSlashCommand(cmd *cobra.Command, api *slack.Client, s slack.SlashCommand, apiKey string) {
+	slog.Debug("Handling slash command", "command", s.Command, "text", s.Text, "user_id", s.UserID, "channel_id", s.ChannelID)
 	args := strings.Fields(s.Text)
 	if len(args) < 4 || args[0] != "interview" || args[1] != "start" || args[2] != "--topic" {
+		slog.Warn("Invalid slash command usage", "text", s.Text)
 		api.PostEphemeral(s.ChannelID, s.UserID, slack.MsgOptionText("Usage: /vox interview start --topic <topic-id>", false))
 		return
 	}
 	topicID := args[3]
+	slog.Debug("Parsed topic ID", "topic_id", topicID)
 
 	var config interview.Config
 	if err := viper.Unmarshal(&config); err != nil {
-		log.Printf("Error unmarshalling config: %v", err)
+		slog.Error("Error unmarshalling config", "error", err)
 		return
 	}
 
@@ -110,12 +118,14 @@ func handleSlashCommand(cmd *cobra.Command, api *slack.Client, s slack.SlashComm
 	}
 
 	if selectedTopic == nil {
+		slog.Warn("Topic not found", "topic_id", topicID)
 		api.PostEphemeral(s.ChannelID, s.UserID, slack.MsgOptionText(fmt.Sprintf("Error: topic '%s' not found", topicID), false))
 		return
 	}
 
 	mu.Lock()
 	if _, ok := activeInterviews[s.UserID]; ok {
+		slog.Warn("Interview already in progress for user", "user_id", s.UserID)
 		api.PostEphemeral(s.ChannelID, s.UserID, slack.MsgOptionText("You already have an interview in progress.", false))
 		mu.Unlock()
 		return
@@ -126,10 +136,12 @@ func handleSlashCommand(cmd *cobra.Command, api *slack.Client, s slack.SlashComm
 	var err error
 	switch strings.ToLower(selectedTopic.Provider) {
 	case "static":
+		slog.Debug("Creating static question provider")
 		questionProvider = interview.NewStaticQuestionProvider(selectedTopic.Questions)
 	case "gemini":
+		slog.Debug("Creating gemini question provider")
 		if apiKey == "" {
-			log.Println("Error: api-key is required for gemini provider")
+			slog.Error("api-key is required for gemini provider")
 			return
 		}
 		model := viper.GetString("model")
@@ -138,20 +150,22 @@ func handleSlashCommand(cmd *cobra.Command, api *slack.Client, s slack.SlashComm
 		}
 		questionProvider, err = interview.NewGeminiQuestionProvider(model, apiKey, selectedTopic.Prompt)
 		if err != nil {
-			log.Printf("Error creating gemini provider: %v", err)
+			slog.Error("Error creating gemini provider", "error", err)
 			return
 		}
 	default:
-		log.Printf("Error: unknown provider '%s'", selectedTopic.Provider)
+		slog.Error("Unknown provider", "provider", selectedTopic.Provider)
 		return
 	}
 
 	convParams := &slack.OpenConversationParameters{Users: []string{s.UserID}}
+	slog.Debug("Opening conversation with user", "user_id", s.UserID)
 	channel, _, _, err := api.OpenConversation(convParams)
 	if err != nil {
-		log.Printf("Failed to open conversation: %v", err)
+		slog.Error("Failed to open conversation", "error", err, "user_id", s.UserID)
 		return
 	}
+	slog.Debug("Conversation opened", "channel_id", channel.ID)
 
 	ui := interview.NewSlackUI(api, channel.ID, s.UserID)
 	mu.Lock()
@@ -162,52 +176,57 @@ func handleSlashCommand(cmd *cobra.Command, api *slack.Client, s slack.SlashComm
 		mu.Lock()
 		delete(activeInterviews, s.UserID)
 		mu.Unlock()
-		log.Printf("Interview finished for user %s", s.UserID)
+		slog.Info("Interview finished for user", "user_id", s.UserID)
 	}()
 
-	log.Printf("Starting interview for user %s", s.UserID)
+	slog.Info("Starting interview for user", "user_id", s.UserID)
 	if err := runInterview(cmd.OutOrStdout(), questionProvider, ui); err != nil {
-		log.Printf("Error running interview: %v", err)
+		slog.Error("Error running interview", "error", err, "user_id", s.UserID)
 	}
 }
 
 func createSlackEventHandler(signingSecret string, api *slack.Client, cmd *cobra.Command) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		slog.Debug("Received slack event")
 		verifier, err := slack.NewSecretsVerifier(r.Header, signingSecret)
 		if err != nil {
-			log.Printf("Error creating secrets verifier: %v", err)
+			slog.Error("Error creating secrets verifier", "error", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
-			log.Printf("Error reading request body: %v", err)
+			slog.Error("Error reading request body", "error", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 		verifier.Write(body)
 		if err := verifier.Ensure(); err != nil {
-			log.Printf("Error verifying request signature: %v", err)
+			slog.Error("Error verifying request signature", "error", err)
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 
 		eventsAPIEvent, err := slackevents.ParseEvent(json.RawMessage(body), slackevents.OptionNoVerifyToken())
 		if err != nil {
-			log.Printf("Error parsing event: %v", err)
+			slog.Error("Error parsing event", "error", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
+		slog.Debug("Parsed slack event", "type", eventsAPIEvent.Type)
+
 		if eventsAPIEvent.Type == slackevents.URLVerification {
 			var r *slackevents.ChallengeResponse
 			if err := json.Unmarshal(body, &r); err != nil {
+				slog.Error("Error unmarshalling challenge response", "error", err)
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
 			w.Header().Set("Content-Type", "text/plain")
 			w.Write([]byte(r.Challenge))
+			slog.Debug("Responded to URL verification challenge")
 			return
 		}
 
@@ -220,9 +239,12 @@ func createSlackEventHandler(signingSecret string, api *slack.Client, cmd *cobra
 
 func handleCallbackEvent(api *slack.Client, eventsAPIEvent slackevents.EventsAPIEvent) {
 	innerEvent := eventsAPIEvent.InnerEvent
+	slog.Debug("Handling callback event", "type", innerEvent.Type)
 	switch ev := innerEvent.Data.(type) {
 	case *slackevents.MessageEvent:
+		slog.Debug("Received message event", "user_id", ev.User, "text", ev.Text, "bot_id", ev.BotID)
 		if ev.BotID != "" {
+			slog.Debug("Ignoring message from bot")
 			return
 		}
 		mu.Lock()
@@ -230,7 +252,10 @@ func handleCallbackEvent(api *slack.Client, eventsAPIEvent slackevents.EventsAPI
 		mu.Unlock()
 
 		if ok {
+			slog.Debug("Found active interview for user", "user_id", ev.User)
 			ui.AnswerChan <- ev.Text
+		} else {
+			slog.Debug("No active interview found for user", "user_id", ev.User)
 		}
 	}
 }

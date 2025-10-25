@@ -1,9 +1,8 @@
 name: Publish and Deploy to Google Cloud
 
 on:
-  push:
-    tags:
-      - 'v*'
+  release:
+    types: [created]
 
 env:
   GAR_LOCATION: europe-west1

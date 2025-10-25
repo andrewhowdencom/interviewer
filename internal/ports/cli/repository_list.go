@@ -26,8 +26,7 @@ func newRepositoryListCmd(repoFn func() (storage.Repository, error)) *cobra.Comm
 			if err != nil {
 				return fmt.Errorf("could not create repository: %w", err)
 			}
-			// Note: We can't close the repo here, as it might be a mock.
-			// The caller of the factory function is responsible for closing the repo.
+			defer repo.Close()
 
 			interviews, err := repo.ListInterviews()
 			if err != nil {

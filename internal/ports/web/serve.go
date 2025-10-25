@@ -61,7 +61,7 @@ func NewServeCmd() *cobra.Command {
 
 			repo, err := bbolt.NewRepository()
 			if err != nil {
-				slog.Error("Error creating repository", "error", err)
+				slog.Error("could not create repository", "error", err)
 				os.Exit(1)
 			}
 

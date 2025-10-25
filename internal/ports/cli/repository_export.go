@@ -32,6 +32,7 @@ func newRepositoryExportCmd(repoFn func() (storage.Repository, error)) *cobra.Co
 			if err != nil {
 				return fmt.Errorf("could not create repository: %w", err)
 			}
+			defer repo.Close()
 
 			interview, err := repo.GetInterview(id)
 			if err != nil {

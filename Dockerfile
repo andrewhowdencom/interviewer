@@ -23,5 +23,9 @@ FROM scratch
 # Copy the binary from the builder stage
 COPY --from=builder /vox /vox
 
-# Set the binary as the entrypoint for the container
+# Expose the port that the server will listen on
+EXPOSE 3000
+
+# Set the binary as the entrypoint for the container and "serve" as the default command
 ENTRYPOINT ["/vox"]
+CMD ["serve"]

@@ -3,7 +3,6 @@ package slack
 import (
 	"fmt"
 	"log/slog"
-	"strings"
 
 	"github.com/andrewhowdencom/vox/internal/domain/interview"
 	"github.com/slack-go/slack"
@@ -49,19 +48,15 @@ func (s *UI) Ask(question string) (string, error) {
 }
 
 // DisplaySummary sends the interview summary to the user on Slack.
-func (s *UI) DisplaySummary(qas []interview.QuestionAndAnswer) {
-	var summary strings.Builder
-	summary.WriteString("*--- Interview Summary ---*\n")
-	for _, qa := range qas {
-		summary.WriteString(fmt.Sprintf("*Q:* %s\n", qa.Question))
-		summary.WriteString(fmt.Sprintf("*A:* %s\n", qa.Answer))
-	}
-	summary.WriteString("*-----------------------*\n")
-	slog.Debug("Displaying summary on slack", "channel_id", s.ChannelID, "user_id", s.UserID, "summary", summary.String())
+func (s *UI) DisplaySummary(summary string) {
+	if summary != "" {
+		formattedSummary := fmt.Sprintf("*--- Interview Summary ---*\n%s\n*-----------------------*", summary)
+		slog.Debug("Displaying summary on slack", "channel_id", s.ChannelID, "user_id", s.UserID, "summary", formattedSummary)
 
-	_, _, err := s.Client.PostMessage(string(s.ChannelID), slack.MsgOptionText(summary.String(), false))
-	if err != nil {
-		slog.Error("Error displaying summary", "error", err, "channel_id", s.ChannelID, "user_id", s.UserID)
+		_, _, err := s.Client.PostMessage(string(s.ChannelID), slack.MsgOptionText(formattedSummary, false))
+		if err != nil {
+			slog.Error("Error displaying summary", "error", err, "channel_id", s.ChannelID, "user_id", s.UserID)
+		}
 	}
 }
 

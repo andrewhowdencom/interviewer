@@ -9,6 +9,7 @@ import (
 	"github.com/andrewhowdencom/vox/internal/domain/interview"
 	"github.com/andrewhowdencom/vox/internal/adapters/providers/gemini"
 	"github.com/andrewhowdencom/vox/internal/adapters/providers/static"
+	"github.com/andrewhowdencom/vox/internal/adapters/storage/bbolt"
 	"github.com/andrewhowdencom/vox/internal/adapters/ui/terminal"
 
 	"github.com/spf13/cobra"
@@ -30,21 +31,24 @@ func NewStartCmd(out io.Writer) *cobra.Command {
 			topicID := viper.GetString("topic")
 			apiKey := viper.GetString("api-key")
 			model := viper.GetString("model")
+			user := viper.GetString("user")
 
-			return runStart(cmd, out, &cfg, topicID, apiKey, model)
+			return runStart(cmd, out, &cfg, topicID, apiKey, model, user)
 		},
 	}
 
 	cmd.Flags().String("topic", "", "The topic of the interview to start")
 	cmd.Flags().String("api-key", "", "The API key for the gemini provider")
 	cmd.Flags().String("model", "gemini-1.5-flash", "The model to use for the gemini provider")
+	cmd.Flags().String("user", "", "The user conducting the interview")
+	cmd.MarkFlagRequired("user")
 	viper.BindPFlags(cmd.Flags())
 
 	return cmd
 }
 
 // runStart is the main logic for the "start" command.
-func runStart(cmd *cobra.Command, out io.Writer, cfg *config.Config, topicID, apiKey, model string) error {
+func runStart(cmd *cobra.Command, out io.Writer, cfg *config.Config, topicID, apiKey, model, user string) error {
 	if topicID == "" {
 		fmt.Fprintln(out, "Please specify a topic using --topic. Available topics:")
 		for _, t := range cfg.Interviews {
@@ -72,21 +76,16 @@ func runStart(cmd *cobra.Command, out io.Writer, cfg *config.Config, topicID, ap
 
 	ui := terminal.New()
 
-	interviewToRun := interview.NewInterview(questionProvider, ui)
-	err = interviewToRun.Run()
+	repo, err := bbolt.NewRepository()
+	if err != nil {
+		return fmt.Errorf("could not create repository: %w", err)
+	}
+	defer repo.Close()
+
+	interviewToRun := interview.NewInterview(questionProvider, ui, repo)
+	err = interviewToRun.Run(user, topicID)
 	if err != nil {
 		return err
-	}
-
-	// The driving adapter is the right place to handle implementation-specific logic
-	// like getting a summary from a specific provider.
-	if gp, ok := questionProvider.(*gemini.QuestionProvider); ok {
-		summary := gp.Summary()
-		if summary != "" {
-			fmt.Fprintln(out, "\n--- Gemini Summary ---")
-			fmt.Fprintln(out, summary)
-			fmt.Fprintln(out, "--------------------")
-		}
 	}
 
 	return nil
@@ -106,7 +105,13 @@ func newQuestionProvider(cmd *cobra.Command, cfg *config.Config, topic *config.T
 		}
 
 		finalPrompt := buildGeminiPrompt(cfg, topic.Prompt)
-		return gemini.New(gemini.Model(model), gemini.APIKey(apiKey), gemini.Prompt(finalPrompt))
+		// We need to cast the concrete type to the interface type.
+		// Since gemini.New returns (interview.QuestionProvider, error), we can do this.
+		p, err := gemini.New(gemini.Model(model), gemini.APIKey(apiKey), gemini.Prompt(finalPrompt))
+		if err != nil {
+			return nil, err
+		}
+		return p, nil
 	default:
 		return nil, fmt.Errorf("unknown provider '%s'", topic.Provider)
 	}

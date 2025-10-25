@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/andrewhowdencom/vox/internal/adapters/ui/slack"
-	"github.com/andrewhowdencom/vox/internal/domain/interview"
 	goslack "github.com/slack-go/slack"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -55,14 +54,11 @@ func TestSlackUI_DisplaySummary(t *testing.T) {
 		mockClient := new(MockSlackClient)
 		ui := slack.New(mockClient, "C12345", "U12345")
 
-		qas := []interview.QuestionAndAnswer{
-			{Question: "Question 1", Answer: "Answer 1"},
-			{Question: "Question 2", Answer: "Answer 2"},
-		}
+		summary := "This is a summary."
 
 		mockClient.On("PostMessage", "C12345", mock.Anything).Return("", "", nil)
 
-		ui.DisplaySummary(qas)
+		ui.DisplaySummary(summary)
 		mockClient.AssertExpectations(t)
 	})
 }

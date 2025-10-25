@@ -15,6 +15,8 @@ import (
 	"github.com/andrewhowdencom/vox/internal/domain/interview"
 	"github.com/andrewhowdencom/vox/internal/adapters/providers/gemini"
 	"github.com/andrewhowdencom/vox/internal/adapters/providers/static"
+	"github.com/andrewhowdencom/vox/internal/adapters/storage/bbolt"
+	"github.com/andrewhowdencom/vox/internal/domain/storage"
 	"github.com/andrewhowdencom/vox/internal/adapters/ui/slack"
 
 	goslack "github.com/slack-go/slack"
@@ -31,6 +33,7 @@ type Server struct {
 	config           *config.Config
 	activeInterviews map[string]*slack.UI
 	mu               sync.Mutex
+	repo             storage.Repository
 }
 
 // NewServeCmd creates a new cobra command for the "serve" command.
@@ -56,12 +59,19 @@ func NewServeCmd() *cobra.Command {
 				os.Exit(1)
 			}
 
+			repo, err := bbolt.NewRepository()
+			if err != nil {
+				slog.Error("Error creating repository", "error", err)
+				os.Exit(1)
+			}
+
 			server := &Server{
 				slackClient:      goslack.New(botToken),
 				signingSecret:    signingSecret,
 				apiKey:           apiKey,
 				config:           &cfg,
 				activeInterviews: make(map[string]*slack.UI),
+				repo:             repo,
 			}
 
 			server.Run(port)
@@ -185,8 +195,8 @@ func (s *Server) handleSlashCommand(command goslack.SlashCommand) {
 	}()
 
 	slog.Info("Starting interview for user", "user_id", command.UserID)
-	interviewToRun := interview.NewInterview(questionProvider, ui)
-	if err := interviewToRun.Run(); err != nil {
+	interviewToRun := interview.NewInterview(questionProvider, ui, s.repo)
+	if err := interviewToRun.Run(command.UserID, topicID); err != nil {
 		slog.Error("Error running interview", "error", err, "user_id", command.UserID)
 	}
 }

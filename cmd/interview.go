@@ -5,21 +5,15 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// newInterviewCmd creates the interview command and adds its subcommands.
-// This is a provider for Wire.
-func newInterviewCmd(startCmd *cobra.Command) *cobra.Command {
+// NewInterviewCmd creates the interview command and adds its subcommands.
+func NewInterviewCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "interview",
 		Short: "Commands for interviewing customers",
 	}
 
-	// The start command is now created by its own package and passed in.
-	cmd.AddCommand(startCmd)
+	cmd.AddCommand(cli.NewStartCmd(nil))
+	cmd.AddCommand(cli.NewRepositoryCmd())
 
 	return cmd
-}
-
-// provideStartCmd is a Wire provider that creates the start command.
-func provideStartCmd() *cobra.Command {
-	return cli.NewStartCmd(nil) // Passing nil for out, as cobra handles it.
 }

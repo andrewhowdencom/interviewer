@@ -29,13 +29,12 @@ func (t *UI) Ask(question string) (string, error) {
 }
 
 // DisplaySummary displays the interview summary in the terminal.
-func (t *UI) DisplaySummary(qas []interview.QuestionAndAnswer) {
-	fmt.Println("\n--- Interview Summary ---")
-	for _, qa := range qas {
-		fmt.Printf("Q: %s\n", qa.Question)
-		fmt.Printf("A: %s\n", qa.Answer)
+func (t *UI) DisplaySummary(summary string) {
+	if summary != "" {
+		fmt.Println("\n--- Interview Summary ---")
+		fmt.Println(summary)
+		fmt.Println("-----------------------")
 	}
-	fmt.Println("-----------------------")
 }
 
 // Ensure UI implements the domain interface.

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/andrewhowdencom/vox/internal/domain"
 	"github.com/andrewhowdencom/vox/internal/domain/interview"
 	"github.com/google/generative-ai-go/genai"
 	"google.golang.org/api/option"
@@ -19,7 +20,6 @@ type QuestionProvider struct {
 	conversational ChatSession
 	questionCount  int
 	maxQuestions   int
-	summary        string
 }
 
 // New creates a new GeminiQuestionProvider.
@@ -59,8 +59,6 @@ func New(model Model, apiKey APIKey, prompt Prompt) (interview.QuestionProvider,
 // NextQuestion returns the next question from the Gemini API.
 func (p *QuestionProvider) NextQuestion(previousAnswer string) (string, bool) {
 	if p.questionCount >= p.maxQuestions {
-		// Generate summary before finishing
-		p.generateSummary()
 		return "", false
 	}
 
@@ -82,8 +80,6 @@ func (p *QuestionProvider) NextQuestion(previousAnswer string) (string, bool) {
 			if text, ok := content.Parts[0].(genai.Text); ok {
 				question := string(text)
 				if strings.Contains(question, "INTERVIEW_COMPLETE") {
-					// Extract summary if Gemini provides it
-					p.summary = strings.TrimSpace(strings.Replace(question, "INTERVIEW_COMPLETE", "", 1))
 					return "", false
 				}
 				p.questionCount++
@@ -95,28 +91,28 @@ func (p *QuestionProvider) NextQuestion(previousAnswer string) (string, bool) {
 	return "", false
 }
 
-// generateSummary generates a summary of the interview using the Gemini API.
-func (p *QuestionProvider) generateSummary() {
-	ctx := context.Background()
-	resp, err := p.conversational.SendMessage(ctx, genai.Text("Please summarize our conversation."))
+// Summarize generates a summary of the interview transcript.
+func (p *QuestionProvider) Summarize(transcript *domain.Transcript) (string, error) {
+	// Format the transcript into a single string for the prompt.
+	var transcriptText string
+	for _, entry := range transcript.Entries {
+		transcriptText += fmt.Sprintf("Q: %s\nA: %s\n\n", entry.Question, entry.Answer)
+	}
+
+	// Create the prompt for summarization.
+	prompt := fmt.Sprintf("Please summarize the following interview transcript:\n\n%s", transcriptText)
+
+	// Call the Gemini API to generate the summary.
+	resp, err := p.client.GenerateContent(context.Background(), genai.Text(prompt))
 	if err != nil {
-		p.summary = "Error generating summary: " + err.Error()
-		return
+		return "", fmt.Errorf("could not generate summary: %w", err)
+	}
+	if len(resp.Candidates) == 0 || len(resp.Candidates[0].Content.Parts) == 0 {
+		return "", fmt.Errorf("no summary response from Gemini")
 	}
 
-	if len(resp.Candidates) > 0 {
-		content := resp.Candidates[0].Content
-		if len(content.Parts) > 0 {
-			if text, ok := content.Parts[0].(genai.Text); ok {
-				p.summary = string(text)
-			}
-		}
-	}
-}
-
-// Summary returns the summary of the interview.
-func (p *QuestionProvider) Summary() string {
-	return p.summary
+	return fmt.Sprintf("%v", resp.Candidates[0].Content.Parts[0]), nil
 }
 
 var _ interview.QuestionProvider = (*QuestionProvider)(nil)
+var _ interview.Summarizer = (*QuestionProvider)(nil)

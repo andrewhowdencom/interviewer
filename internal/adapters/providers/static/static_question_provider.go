@@ -1,6 +1,7 @@
 package static
 
 import (
+	"github.com/andrewhowdencom/vox/internal/domain"
 	"github.com/andrewhowdencom/vox/internal/domain/interview"
 )
 
@@ -30,3 +31,9 @@ func (p *QuestionProvider) NextQuestion(previousAnswer string) (string, bool) {
 
 // Ensure QuestionProvider implements the domain interface.
 var _ interview.QuestionProvider = (*QuestionProvider)(nil)
+var _ interview.Summarizer = (*QuestionProvider)(nil)
+
+// Summarize returns an empty string, as static interviews do not have summaries.
+func (p *QuestionProvider) Summarize(transcript *domain.Transcript) (string, error) {
+	return "", nil
+}

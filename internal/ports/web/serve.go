@@ -78,7 +78,7 @@ func NewServeCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().Int("port", 3000, "The port to listen on for Slack events")
+	cmd.Flags().Int("port", 8080, "The port to listen on for Slack events")
 	cmd.Flags().String("slack-bot-token", "", "The Slack bot token")
 	cmd.Flags().String("slack-signing-secret", "", "The Slack signing secret")
 	cmd.Flags().String("api-key", "", "The API key for the gemini provider")
@@ -91,6 +91,7 @@ func NewServeCmd() *cobra.Command {
 func (s *Server) Run(port int) {
 	http.HandleFunc("/slack/events", s.createSlackEventHandler())
 	http.HandleFunc("/slack/commands", s.createSlashCommandHandler())
+
 
 	slog.Info("Server starting", "port", port)
 	if err := http.ListenAndServe(fmt.Sprintf(":%d", port), nil); err != nil {

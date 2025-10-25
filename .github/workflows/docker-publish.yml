@@ -7,10 +7,9 @@ on:
 
 env:
   GAR_LOCATION: europe-west1
-  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-  GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
-  GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-  CLOUD_RUN_SERVICE_NAME: vox
+  GCP_PROJECT_ID: vox-emptoris
+  GCP_WORKLOAD_IDENTITY_PROVIDER: projects/438119730124/locations/global/workloadIdentityPools/github/providers/vox-emptoris
+  CLOUD_RUN_SERVICE_NAME: vox-emptoris
   CLOUD_RUN_REGION: europe-west1
 
 jobs:
@@ -29,7 +28,6 @@ jobs:
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2

@@ -59,5 +59,6 @@ jobs:
           service: ${{ env.CLOUD_RUN_SERVICE_NAME }}
           region: ${{ env.CLOUD_RUN_REGION }}
           image: ${{ steps.push.outputs.digest }}
+          allow_unauthenticated: true
           secrets: |-
             /etc/.vox.yaml=vox-emptoris:latest

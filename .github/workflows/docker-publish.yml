@@ -62,4 +62,4 @@ jobs:
           region: ${{ env.CLOUD_RUN_REGION }}
           image: ${{ steps.push.outputs.digest }}
           secrets: |-
-            /etc/.vox.yaml=${{ secrets.VOX_CONFIG_SECRET_NAME }}:latest
+            /etc/.vox.yaml=vox-emptoris:latest

@@ -17,8 +17,10 @@ COPY . .
 # -o /vox creates the binary at the root of the filesystem, named "vox"
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o /vox .
 
-# Start a new, smaller stage from scratch
-FROM scratch
+# Start a new, smaller stage from debian:stable
+FROM debian:stable
+
+RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
 
 # Copy the binary from the builder stage
 COPY --from=builder /vox /vox

@@ -27,7 +27,7 @@ func Execute() {
 func NewRootCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "vox",
-		Short: "A CLI for conducting LLM-based interviews.",
+		Short: "A tool for product managers to understand customer needs.",
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			initConfig()
 		},
@@ -70,6 +70,7 @@ func initConfig() {
 		viper.SetConfigFile(cfgFile)
 	} else {
 		// Search config in XDG config directory with name ".vox" (without extension).
+		viper.AddConfigPath("/etc/")
 		viper.AddConfigPath(xdg.ConfigHome)
 		viper.AddConfigPath(".")
 		viper.SetConfigType("yaml")

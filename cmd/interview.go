@@ -9,7 +9,7 @@ import (
 func NewInterviewCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "interview",
-		Short: "Commands for managing interviews",
+		Short: "Commands for interviewing customers",
 	}
 
 	cmd.AddCommand(cli.NewStartCmd(nil))

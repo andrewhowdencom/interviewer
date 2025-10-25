@@ -1,0 +1,13 @@
+# Git
+.git
+.github
+.gitignore
+
+# Credentials
+gha-creds-*.json
+
+# Binaries
+vox
+
+# Coverage
+coverage.out

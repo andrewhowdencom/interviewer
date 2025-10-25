@@ -3,3 +3,6 @@ vox
 
 # Coverage
 coverage.out
+
+# Credentials
+gha-creds-*.json

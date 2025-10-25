@@ -1,3 +1,16 @@
+# The default topic to use for interviews if not specified on the command line.
+topic: "behavioural-interview"
+# The API key for provider services like Gemini.
+api-key: "<your-gemini-api-key>"
+# The user associated with an interview session.
+user: "<user-id>"
+# The port for the web server to listen on.
+port: 8080
+# The bot token for the Slack app.
+slack-bot-token: "<your-slack-bot-token>"
+# The signing secret for the Slack app.
+slack-signing-secret: "<your-slack-signing-secret>"
+
 providers:
   gemini:
     model: "gemini-flash-latest"

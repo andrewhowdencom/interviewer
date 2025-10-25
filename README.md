@@ -1,11 +1,11 @@
-# vox: Your AI Interview Co-pilot
+# vox: Your AI Co-pilot for Product Interviews
 > 95% Vibe coded with Jules
 
 ## What is vox?
-vox is a command-line tool that uses AI to conduct interviews. Think of it as a friendly, programmable interviewer that can ask you anything from classic behavioral questions to tricky technical deep-dives. It's designed to be simple, extensible, and a little bit of fun.
+vox is a command-line tool that uses AI to help you practice for product interviews. Think of it as a friendly, programmable interviewer that can simulate everything from product sense and design discussions to behavioral and leadership questions. It's designed to be simple, extensible, and a little bit of fun.
 
 ## Why vox?
-The goal of vox is to make interview practice more accessible and less stressful. Whether you're a student preparing for your first job or a seasoned pro looking to sharpen your skills, vox provides a low-stakes way to get in the reps. It helps you articulate your thoughts, practice your responses, and build confidence before the real thing.
+The goal of vox is to make product interview practice more accessible and less stressful. Landing a product role is tough, and practicing your interview skills is key. vox provides a safe, low-stakes way to get in the reps, helping you articulate your product vision, practice your responses, and build confidence before the real thing.
 
 ## Getting Started
 Ready to give it a whirl? Here’s how to get up and running in a few simple steps.
@@ -36,10 +36,10 @@ interviews:
         - "What is your greatest weakness?"
         - "How do you handle stress and pressure?"
 
-    # An AI-powered interview using Gemini
-    - id: technical-interview
+    # An AI-powered interview using Gemini for product sense
+    - id: product-sense-interview
       provider: gemini
-      prompt: "You are an interviewer conducting a technical interview for a Senior Software Engineer position."
+      prompt: "You are an interviewer conducting a product sense interview for a Senior Product Manager position."
 ```
 
 ### 3. Run an Interview
@@ -47,6 +47,14 @@ Once your config is set up, you can start an interview from your terminal:
 
 ```bash
 vox interview start --topic behavioural-interview
+```
+
+**Using the Gemini Provider**
+
+If you're using the `gemini` provider, you'll need to include your API key. You can do this by passing the `--api-key` flag:
+
+```bash
+vox interview start --topic product-sense-interview --api-key YOUR_GEMINI_API_KEY
 ```
 
 ## Features

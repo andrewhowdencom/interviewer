@@ -34,7 +34,7 @@ func Execute() {
 func newRootCmd(interviewCmd *cobra.Command, serveCmd *cobra.Command, debugCmd *cobra.Command) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "vox",
-		Short: "A CLI for conducting LLM-based interviews.",
+		Short: "A tool for product managers to understand customer needs.",
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			initConfig()
 		},

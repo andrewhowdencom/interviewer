@@ -10,7 +10,7 @@ import (
 func newInterviewCmd(startCmd *cobra.Command) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "interview",
-		Short: "Commands for managing interviews",
+		Short: "Commands for interviewing customers",
 	}
 
 	// The start command is now created by its own package and passed in.

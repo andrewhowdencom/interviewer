@@ -13,9 +13,9 @@ RUN go mod download
 COPY . .
 
 # Build the application
-# CGO_ENABLED=0 is important for building a static binary that can run in a scratch container
+# Build a dynamically-linked binary for the debian image.
 # -o /vox creates the binary at the root of the filesystem, named "vox"
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o /vox .
+RUN go build -o /vox .
 
 # Start a new, smaller stage from debian:stable
 FROM debian:stable

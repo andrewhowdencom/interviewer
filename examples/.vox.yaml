@@ -1,3 +1,15 @@
+# OpenTelemetry configuration for sending metrics to an OTLP-compatible backend.
+telemetry:
+  otlp:
+    # The endpoint of the OTLP collector (e.g., "localhost:4318" or a Grafana Cloud URL).
+    endpoint: ""
+    # Set to true if the collector endpoint is not using TLS.
+    insecure: false
+    # Additional headers to send with OTLP requests, such as for authentication.
+    # For Grafana Cloud, this would be a "Authorization" header with a Basic auth credential.
+    headers:
+      # Authorization: "Basic <your-base64-encoded-credentials>"
+
 # The default topic to use for interviews if not specified on the command line.
 topic: "behavioural-interview"
 # The API key for provider services like Gemini.

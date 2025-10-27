@@ -6,14 +6,17 @@ import (
 	"strings"
 
 	"github.com/adrg/xdg"
+	"github.com/andrewhowdencom/vox/internal/config"
 	"github.com/andrewhowdencom/vox/internal/ports/cli"
 	"github.com/andrewhowdencom/vox/internal/ports/web"
+	"github.com/andrewhowdencom/vox/internal/telemetry"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
 var cfgFile string
 var logLevel string
+var telemetryShutdown func()
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
@@ -30,6 +33,26 @@ func NewRootCmd() *cobra.Command {
 		Short: "A tool for product managers to understand customer needs.",
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			initConfig()
+
+			// Unmarshal the config into our struct
+			var cfg config.Config
+			if err := viper.Unmarshal(&cfg); err != nil {
+				slog.Error("failed to unmarshal config", slog.Any("error", err))
+				os.Exit(1)
+			}
+
+			// Initialise telemetry
+			var err error
+			telemetryShutdown, err = telemetry.Init(&cfg)
+			if err != nil {
+				slog.Error("failed to initialise telemetry", slog.Any("error", err))
+				os.Exit(1)
+			}
+		},
+		PersistentPostRun: func(cmd *cobra.Command, args []string) {
+			if telemetryShutdown != nil {
+				telemetryShutdown()
+			}
 		},
 	}
 

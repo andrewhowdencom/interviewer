@@ -2,6 +2,13 @@ package config
 
 // Config defines the structure of the application's configuration file.
 type Config struct {
+	Telemetry struct {
+		OTLP struct {
+			Endpoint string
+			Insecure bool
+			Headers  map[string]string
+		}
+	}
 	Interviews []Topic
 	Providers  struct {
 		Gemini struct {

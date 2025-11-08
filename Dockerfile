@@ -25,6 +25,9 @@ RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/
 # Copy the binary from the builder stage
 COPY --from=builder /vox /vox
 
+# Add custom resolv.conf
+COPY resolv.conf /etc/resolv.conf
+
 # Expose the port that the server will listen on
 EXPOSE 8080
 

@@ -136,69 +136,103 @@ func (s *Server) createSlashCommandHandler() http.HandlerFunc {
 
 func (s *Server) handleSlashCommand(command goslack.SlashCommand) {
 	slog.Debug("Handling slash command", "command", command.Command, "text", command.Text, "user_id", command.UserID, "channel_id", command.ChannelID)
+
+	var topicID string
+	var interviewCmd = &cobra.Command{Use: "interview"}
+	var startCmd = &cobra.Command{
+		Use: "start",
+		Run: func(cmd *cobra.Command, args []string) {
+			slog.Debug("Parsed topic ID", "topic_id", topicID)
+
+			if topicID == "" {
+				slog.Warn("Topic ID is required")
+				cmd.Help()
+				return
+			}
+
+			var selectedTopic *config.Topic
+			for i, t := range s.config.Interviews {
+				if strings.EqualFold(t.ID, topicID) {
+					selectedTopic = &s.config.Interviews[i]
+					break
+				}
+			}
+
+			if selectedTopic == nil {
+				slog.Warn("Topic not found", "topic_id", topicID)
+				s.slackClient.PostEphemeral(command.ChannelID, command.UserID, goslack.MsgOptionText(fmt.Sprintf("Error: topic '%s' not found", topicID), false))
+				return
+			}
+
+			s.mu.Lock()
+			if _, ok := s.activeInterviews[command.UserID]; ok {
+				slog.Warn("Interview already in progress for user", "user_id", command.UserID)
+				s.slackClient.PostEphemeral(command.ChannelID, command.UserID, goslack.MsgOptionText("You already have an interview in progress.", false))
+				s.mu.Unlock()
+				return
+			}
+			s.mu.Unlock()
+
+			questionProvider, err := newQuestionProvider(s.config, selectedTopic, s.apiKey, viper.GetString("model"))
+			if err != nil {
+				slog.Error("Error creating question provider", "error", err)
+				return
+			}
+
+			convParams := &goslack.OpenConversationParameters{Users: []string{command.UserID}}
+			slog.Debug("Opening conversation with user", "user_id", command.UserID)
+			channel, _, _, err := s.slackClient.OpenConversation(convParams)
+			if err != nil {
+				slog.Error("Failed to open conversation", "error", err, "user_id", command.UserID)
+				return
+			}
+			slog.Debug("Conversation opened", "channel_id", channel.ID)
+
+			ui := slack.New(s.slackClient, slack.ChannelID(channel.ID), slack.UserID(command.UserID))
+			s.mu.Lock()
+			s.activeInterviews[command.UserID] = ui
+			s.mu.Unlock()
+
+			defer func() {
+				s.mu.Lock()
+				delete(s.activeInterviews, command.UserID)
+				s.mu.Unlock()
+				slog.Info("Interview finished for user", "user_id", command.UserID)
+			}()
+
+			slog.Info("Starting interview for user", "user_id", command.UserID)
+			interviewToRun := interview.NewInterview(questionProvider, ui, s.repo)
+			if err := interviewToRun.Run(command.UserID, topicID); err != nil {
+				slog.Error("Error running interview", "error", err, "user_id", command.UserID)
+			}
+		},
+	}
+	startCmd.Flags().StringVar(&topicID, "topic", "", "The ID of the interview topic")
+	interviewCmd.AddCommand(startCmd)
+
+	// Create a root command to mimic the actual command structure for parsing
+	rootCmd := &cobra.Command{Use: "vox"}
+	rootCmd.AddCommand(interviewCmd)
+	rootCmd.SilenceErrors = true
+	rootCmd.SilenceUsage = true
+
+	var buf bytes.Buffer
+	rootCmd.SetOut(&buf)
+	rootCmd.SetErr(&buf)
+
 	args := strings.Fields(command.Text)
-	if len(args) < 4 || args[0] != "interview" || args[1] != "start" || args[2] != "--topic" {
-		slog.Warn("Invalid slash command usage", "text", command.Text)
-		s.slackClient.PostEphemeral(command.ChannelID, command.UserID, goslack.MsgOptionText("Usage: /vox interview start --topic <topic-id>", false))
-		return
-	}
-	topicID := args[3]
-	slog.Debug("Parsed topic ID", "topic_id", topicID)
+	rootCmd.SetArgs(args)
 
-	var selectedTopic *config.Topic
-	for i, t := range s.config.Interviews {
-		if strings.EqualFold(t.ID, topicID) {
-			selectedTopic = &s.config.Interviews[i]
-			break
-		}
-	}
-
-	if selectedTopic == nil {
-		slog.Warn("Topic not found", "topic_id", topicID)
-		s.slackClient.PostEphemeral(command.ChannelID, command.UserID, goslack.MsgOptionText(fmt.Sprintf("Error: topic '%s' not found", topicID), false))
+	if err := rootCmd.Execute(); err != nil {
+		slog.Warn("Invalid slash command usage", "text", command.Text, "error", err)
+		s.slackClient.PostEphemeral(command.ChannelID, command.UserID, goslack.MsgOptionText(buf.String(), false))
 		return
 	}
 
-	s.mu.Lock()
-	if _, ok := s.activeInterviews[command.UserID]; ok {
-		slog.Warn("Interview already in progress for user", "user_id", command.UserID)
-		s.slackClient.PostEphemeral(command.ChannelID, command.UserID, goslack.MsgOptionText("You already have an interview in progress.", false))
-		s.mu.Unlock()
-		return
-	}
-	s.mu.Unlock()
-
-	questionProvider, err := newQuestionProvider(s.config, selectedTopic, s.apiKey, viper.GetString("model"))
-	if err != nil {
-		slog.Error("Error creating question provider", "error", err)
-		return
-	}
-
-	convParams := &goslack.OpenConversationParameters{Users: []string{command.UserID}}
-	slog.Debug("Opening conversation with user", "user_id", command.UserID)
-	channel, _, _, err := s.slackClient.OpenConversation(convParams)
-	if err != nil {
-		slog.Error("Failed to open conversation", "error", err, "user_id", command.UserID)
-		return
-	}
-	slog.Debug("Conversation opened", "channel_id", channel.ID)
-
-	ui := slack.New(s.slackClient, slack.ChannelID(channel.ID), slack.UserID(command.UserID))
-	s.mu.Lock()
-	s.activeInterviews[command.UserID] = ui
-	s.mu.Unlock()
-
-	defer func() {
-		s.mu.Lock()
-		delete(s.activeInterviews, command.UserID)
-		s.mu.Unlock()
-		slog.Info("Interview finished for user", "user_id", command.UserID)
-	}()
-
-	slog.Info("Starting interview for user", "user_id", command.UserID)
-	interviewToRun := interview.NewInterview(questionProvider, ui, s.repo)
-	if err := interviewToRun.Run(command.UserID, topicID); err != nil {
-		slog.Error("Error running interview", "error", err, "user_id", command.UserID)
+	// If there was any output, send it. This is useful for --help or if the Run
+	// function writes to the buffer (e.g. on validation error)
+	if buf.Len() > 0 {
+		s.slackClient.PostEphemeral(command.ChannelID, command.UserID, goslack.MsgOptionText(buf.String(), false))
 	}
 }
 

@@ -7,6 +7,7 @@ import (
 
 	"github.com/adrg/xdg"
 	"github.com/andrewhowdencom/vox/internal/config"
+	"github.com/andrewhowdencom/vox/internal/debug"
 	"github.com/andrewhowdencom/vox/internal/ports/cli"
 	"github.com/andrewhowdencom/vox/internal/ports/web"
 	"github.com/andrewhowdencom/vox/internal/telemetry"
@@ -33,6 +34,7 @@ func NewRootCmd() *cobra.Command {
 		Short: "A tool for product managers to understand customer needs.",
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			initConfig()
+			debug.LogDNSInfo()
 
 			// Unmarshal the config into our struct
 			var cfg config.Config

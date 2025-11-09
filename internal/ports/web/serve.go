@@ -13,7 +13,6 @@ import (
 
 	"github.com/andrewhowdencom/vox/internal/config"
 	"github.com/andrewhowdencom/vox/internal/domain/interview"
-	voxhttp "github.com/andrewhowdencom/vox/internal/http"
 	"github.com/andrewhowdencom/vox/internal/adapters/providers/gemini"
 	"github.com/andrewhowdencom/vox/internal/adapters/providers/static"
 	"github.com/andrewhowdencom/vox/internal/adapters/storage/bbolt"
@@ -66,8 +65,7 @@ func NewServeCmd() *cobra.Command {
 				os.Exit(1)
 			}
 
-			httpClient := voxhttp.NewIPv4Client()
-			slackClient := goslack.New(botToken, goslack.OptionHTTPClient(httpClient))
+			slackClient := goslack.New(botToken)
 
 			server := &Server{
 				slackClient:      slackClient,

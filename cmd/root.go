@@ -40,7 +40,7 @@ func NewRootCmd() *cobra.Command {
 				slog.Error("failed to unmarshal config", slog.Any("error", err))
 				os.Exit(1)
 			}
-			slog.Debug("loaded configuration", "config", viper.AllSettings())
+			slog.Debug("loaded configuration", "config", cfg)
 
 			// Initialise telemetry
 			var err error

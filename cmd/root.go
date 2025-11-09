@@ -7,7 +7,6 @@ import (
 
 	"github.com/adrg/xdg"
 	"github.com/andrewhowdencom/vox/internal/config"
-	"github.com/andrewhowdencom/vox/internal/debug"
 	"github.com/andrewhowdencom/vox/internal/ports/cli"
 	"github.com/andrewhowdencom/vox/internal/ports/web"
 	"github.com/andrewhowdencom/vox/internal/telemetry"
@@ -41,7 +40,7 @@ func NewRootCmd() *cobra.Command {
 				slog.Error("failed to unmarshal config", slog.Any("error", err))
 				os.Exit(1)
 			}
-			debug.LogGeminiAPIKey(cfg.Providers.Gemini.APIKey)
+			slog.Debug("loaded configuration", "config", viper.AllSettings())
 
 			// Initialise telemetry
 			var err error

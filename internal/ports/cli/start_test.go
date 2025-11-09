@@ -25,7 +25,7 @@ func TestBuildGeminiPrompt(t *testing.T) {
 		cfg := &config.Config{
 			Providers: struct {
 				Gemini struct {
-					APIKey      string `yaml:"api_key"`
+					APIKey      string `mapstructure:"api_key"`
 					Model       string
 					Interviewer struct {
 						Prompt string
@@ -33,7 +33,7 @@ func TestBuildGeminiPrompt(t *testing.T) {
 				}
 			}{
 				Gemini: struct {
-					APIKey      string `yaml:"api_key"`
+					APIKey      string `mapstructure:"api_key"`
 					Model       string
 					Interviewer struct {
 						Prompt string

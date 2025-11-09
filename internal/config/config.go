@@ -4,7 +4,7 @@ package config
 type Config struct {
 	// DNSServer specifies a custom DNS server to use for all outbound connections.
 	// If empty, the system's default DNS resolver will be used.
-	DNSServer string `yaml:"dns_server,omitempty"`
+	DNSServer string `mapstructure:"dns_server,omitempty"`
 	Telemetry struct {
 		OTLP struct {
 			Endpoint string
@@ -15,7 +15,7 @@ type Config struct {
 	Interviews []Topic
 	Providers  struct {
 		Gemini struct {
-			APIKey      string `yaml:"api_key"`
+			APIKey      string `mapstructure:"api_key"`
 			Model       string
 			Interviewer struct {
 				Prompt string

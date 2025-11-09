@@ -16,7 +16,7 @@ COPY . .
 RUN CGO_ENABLED=0 go build -ldflags="-w -s" -o /vox .
 
 # Start a new, smaller stage from scratch
-FROM scratch
+FROM gcr.io/distroless/static-debian13
 
 # Copy the CA certificates from the builder stage
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/

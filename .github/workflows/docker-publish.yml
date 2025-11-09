@@ -1,8 +1,9 @@
 name: Publish and Deploy to Google Cloud
 
 on:
-  release:
-    types: [created]
+  push:
+    branches:
+      - main
 
 env:
   GAR_LOCATION: europe-west1

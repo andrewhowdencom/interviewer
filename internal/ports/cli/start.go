@@ -98,8 +98,13 @@ func newQuestionProvider(cmd *cobra.Command, cfg *config.Config, topic *config.T
 		return static.New(topic.Questions), nil
 	case "gemini":
 		if apiKey == "" {
+			apiKey = cfg.Providers.Gemini.APIKey
+		}
+
+		if apiKey == "" {
 			return nil, fmt.Errorf("api-key is required for gemini provider")
 		}
+
 		if !cmd.Flags().Changed("model") && cfg.Providers.Gemini.Model != "" {
 			model = cfg.Providers.Gemini.Model
 		}

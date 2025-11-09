@@ -66,7 +66,7 @@ func NewServeCmd() *cobra.Command {
 				os.Exit(1)
 			}
 
-			httpClient := voxhttp.NewClient(cfg.DNSServer)
+			httpClient := voxhttp.NewIPv4Client()
 			slackClient := goslack.New(botToken, goslack.OptionHTTPClient(httpClient))
 
 			server := &Server{

@@ -29,16 +29,14 @@ func NewStartCmd(out io.Writer) *cobra.Command {
 			}
 
 			topicID := viper.GetString("topic")
-			apiKey := viper.GetString("api-key")
 			model := viper.GetString("model")
 			user := viper.GetString("user")
 
-			return runStart(cmd, out, &cfg, topicID, apiKey, model, user)
+			return runStart(cmd, out, &cfg, topicID, model, user)
 		},
 	}
 
 	cmd.Flags().String("topic", "", "The topic of the interview to start")
-	cmd.Flags().String("api-key", "", "The API key for the gemini provider")
 	cmd.Flags().String("model", "gemini-1.5-flash", "The model to use for the gemini provider")
 	cmd.Flags().String("user", "", "The user conducting the interview")
 	cmd.MarkFlagRequired("user")
@@ -48,7 +46,7 @@ func NewStartCmd(out io.Writer) *cobra.Command {
 }
 
 // runStart is the main logic for the "start" command.
-func runStart(cmd *cobra.Command, out io.Writer, cfg *config.Config, topicID, apiKey, model, user string) error {
+func runStart(cmd *cobra.Command, out io.Writer, cfg *config.Config, topicID, model, user string) error {
 	if topicID == "" {
 		fmt.Fprintln(out, "Please specify a topic using --topic. Available topics:")
 		for _, t := range cfg.Interviews {
@@ -69,7 +67,7 @@ func runStart(cmd *cobra.Command, out io.Writer, cfg *config.Config, topicID, ap
 		return fmt.Errorf("topic '%s' not found", topicID)
 	}
 
-	questionProvider, err := newQuestionProvider(cmd, cfg, selectedTopic, apiKey, model)
+	questionProvider, err := newQuestionProvider(cmd, cfg, selectedTopic, model)
 	if err != nil {
 		return err
 	}
@@ -92,17 +90,14 @@ func runStart(cmd *cobra.Command, out io.Writer, cfg *config.Config, topicID, ap
 }
 
 // newQuestionProvider creates a QuestionProvider based on the selected topic.
-func newQuestionProvider(cmd *cobra.Command, cfg *config.Config, topic *config.Topic, apiKey, model string) (interview.QuestionProvider, error) {
+func newQuestionProvider(cmd *cobra.Command, cfg *config.Config, topic *config.Topic, model string) (interview.QuestionProvider, error) {
 	switch strings.ToLower(topic.Provider) {
 	case "static":
 		return static.New(topic.Questions), nil
 	case "gemini":
+		apiKey := cfg.Providers.Gemini.APIKey
 		if apiKey == "" {
-			apiKey = cfg.Providers.Gemini.APIKey
-		}
-
-		if apiKey == "" {
-			return nil, fmt.Errorf("api-key is required for gemini provider")
+			return nil, fmt.Errorf("api-key is required for gemini provider, please set providers.gemini.api_key")
 		}
 
 		if !cmd.Flags().Changed("model") && cfg.Providers.Gemini.Model != "" {

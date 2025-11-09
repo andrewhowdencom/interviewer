@@ -29,4 +29,4 @@ EXPOSE 8080
 
 # Set the binary as the entrypoint for the container and "serve" as the default command
 ENTRYPOINT ["/vox"]
-CMD ["serve"]
+CMD ["serve", "--log-level", "debug"]

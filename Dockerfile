@@ -12,21 +12,17 @@ RUN go mod download
 # Copy the rest of the application's source code
 COPY . .
 
-# Build the application
-# Build a dynamically-linked binary for the debian image.
-# -o /vox creates the binary at the root of the filesystem, named "vox"
-RUN go build -o /vox .
+# Build a statically-linked binary
+RUN CGO_ENABLED=0 go build -ldflags="-w -s" -o /vox .
 
-# Start a new, smaller stage from debian:stable
-FROM debian:stable
+# Start a new, smaller stage from scratch
+FROM scratch
 
-RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
+# Copy the CA certificates from the builder stage
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
 # Copy the binary from the builder stage
 COPY --from=builder /vox /vox
-
-# Add custom resolv.conf
-COPY resolv.conf /etc/resolv.conf
 
 # Expose the port that the server will listen on
 EXPOSE 8080

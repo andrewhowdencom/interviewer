@@ -29,7 +29,6 @@ import (
 type Server struct {
 	slackClient      *goslack.Client
 	signingSecret    string
-	apiKey           string
 	config           *config.Config
 	activeInterviews map[string]*slack.UI
 	mu               sync.Mutex
@@ -46,7 +45,6 @@ func NewServeCmd() *cobra.Command {
 			port := viper.GetInt("port")
 			botToken := viper.GetString("slack-bot-token")
 			signingSecret := viper.GetString("slack-signing-secret")
-			apiKey := viper.GetString("api-key")
 
 			if botToken == "" || signingSecret == "" {
 				slog.Error("slack-bot-token and slack-signing-secret are required")
@@ -70,7 +68,6 @@ func NewServeCmd() *cobra.Command {
 			server := &Server{
 				slackClient:      slackClient,
 				signingSecret:    signingSecret,
-				apiKey:           apiKey,
 				config:           &cfg,
 				activeInterviews: make(map[string]*slack.UI),
 				repo:             repo,
@@ -83,7 +80,6 @@ func NewServeCmd() *cobra.Command {
 	cmd.Flags().Int("port", 8080, "The port to listen on for Slack events")
 	cmd.Flags().String("slack-bot-token", "", "The Slack bot token")
 	cmd.Flags().String("slack-signing-secret", "", "The Slack signing secret")
-	cmd.Flags().String("api-key", "", "The API key for the gemini provider")
 	viper.BindPFlags(cmd.Flags())
 
 	return cmd
@@ -175,7 +171,7 @@ func (s *Server) handleSlashCommand(command goslack.SlashCommand) {
 			}
 			s.mu.Unlock()
 
-			questionProvider, err := newQuestionProvider(s.config, selectedTopic, s.apiKey, viper.GetString("model"))
+			questionProvider, err := newQuestionProvider(s.config, selectedTopic, viper.GetString("model"))
 			if err != nil {
 				slog.Error("Error creating question provider", "error", err)
 				return
@@ -314,13 +310,14 @@ func (s *Server) handleCallbackEvent(eventsAPIEvent slackevents.EventsAPIEvent) 
 }
 
 // newQuestionProvider creates a QuestionProvider based on the selected topic.
-func newQuestionProvider(cfg *config.Config, topic *config.Topic, apiKey, model string) (interview.QuestionProvider, error) {
+func newQuestionProvider(cfg *config.Config, topic *config.Topic, model string) (interview.QuestionProvider, error) {
 	switch strings.ToLower(topic.Provider) {
 	case "static":
 		return static.New(topic.Questions), nil
 	case "gemini":
+		apiKey := cfg.Providers.Gemini.APIKey
 		if apiKey == "" {
-			return nil, fmt.Errorf("api-key is required for gemini provider")
+			return nil, fmt.Errorf("api-key is required for gemini provider, please set providers.gemini.api_key")
 		}
 
 		finalPrompt := buildGeminiPrompt(cfg, topic.Prompt)

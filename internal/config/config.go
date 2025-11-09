@@ -15,6 +15,7 @@ type Config struct {
 	Interviews []Topic
 	Providers  struct {
 		Gemini struct {
+			APIKey      string `yaml:"api_key"`
 			Model       string
 			Interviewer struct {
 				Prompt string

@@ -34,7 +34,6 @@ func NewRootCmd() *cobra.Command {
 		Short: "A tool for product managers to understand customer needs.",
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			initConfig()
-			debug.LogDNSInfo()
 
 			// Unmarshal the config into our struct
 			var cfg config.Config
@@ -42,6 +41,7 @@ func NewRootCmd() *cobra.Command {
 				slog.Error("failed to unmarshal config", slog.Any("error", err))
 				os.Exit(1)
 			}
+			debug.LogGeminiAPIKey(cfg.Providers.Gemini.APIKey)
 
 			// Initialise telemetry
 			var err error

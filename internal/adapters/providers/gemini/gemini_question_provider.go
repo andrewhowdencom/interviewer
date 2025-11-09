@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/andrewhowdencom/vox/internal/config"
 	"github.com/andrewhowdencom/vox/internal/domain"
 	"github.com/andrewhowdencom/vox/internal/domain/interview"
+	"github.com/andrewhowdencom/vox/internal/http"
 	"github.com/google/generative-ai-go/genai"
 	"google.golang.org/api/option"
 )
@@ -23,9 +25,10 @@ type QuestionProvider struct {
 }
 
 // New creates a new GeminiQuestionProvider.
-func New(model Model, apiKey APIKey, prompt Prompt) (interview.QuestionProvider, error) {
+func New(cfg *config.Config, model Model, apiKey APIKey, prompt Prompt) (interview.QuestionProvider, error) {
 	ctx := context.Background()
-	client, err := genai.NewClient(ctx, option.WithAPIKey(string(apiKey)))
+	httpClient := http.NewClient(cfg.DNSServer)
+	client, err := genai.NewClient(ctx, option.WithAPIKey(string(apiKey)), option.WithHTTPClient(httpClient))
 	if err != nil {
 		return nil, err
 	}

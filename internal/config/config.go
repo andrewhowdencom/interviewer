@@ -2,6 +2,9 @@ package config
 
 // Config defines the structure of the application's configuration file.
 type Config struct {
+	// DNSServer specifies a custom DNS server to use for all outbound connections.
+	// If empty, the system's default DNS resolver will be used.
+	DNSServer string `yaml:"dns_server,omitempty"`
 	Telemetry struct {
 		OTLP struct {
 			Endpoint string

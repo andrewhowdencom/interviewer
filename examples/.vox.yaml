@@ -23,6 +23,14 @@ slack-bot-token: "<your-slack-bot-token>"
 # The signing secret for the Slack app.
 slack-signing-secret: "<your-slack-signing-secret>"
 
+# Custom DNS server to use for all outbound connections. If not specified,
+# the system's default DNS resolver will be used.
+# This is useful in environments like Google Cloud Run where the default DNS may not be available.
+#
+# Examples:
+# dns_server: "8.8.8.8"    # Google's IPv4 DNS
+# dns_server: "2001:4860:4860::8888" # Google's IPv6 DNS
+
 providers:
   gemini:
     model: "gemini-flash-latest"

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/andrewhowdencom/vox/internal/config"
+	"github.com/andrewhowdencom/vox/internal/http"
 	"go.opentelemetry.io/contrib/instrumentation/runtime"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
@@ -25,10 +26,14 @@ func Init(cfg *config.Config) (func(), error) {
 	slog.Info("initializing telemetry")
 	ctx := context.Background()
 
+	// Create a single HTTP client to be used by all exporters
+	httpClient := http.NewClient(cfg.DNSServer)
+
 	// Common HTTP options
 	httpOpts := []otlptracehttp.Option{
 		otlptracehttp.WithEndpoint(cfg.Telemetry.OTLP.Endpoint),
 		otlptracehttp.WithTimeout(15 * time.Second),
+		otlptracehttp.WithHTTPClient(httpClient),
 	}
 	if cfg.Telemetry.OTLP.Insecure {
 		httpOpts = append(httpOpts, otlptracehttp.WithInsecure())
@@ -53,6 +58,7 @@ func Init(cfg *config.Config) (func(), error) {
 	metricOpts := []otlpmetrichttp.Option{
 		otlpmetrichttp.WithEndpoint(cfg.Telemetry.OTLP.Endpoint),
 		otlpmetrichttp.WithTimeout(15 * time.Second),
+		otlpmetrichttp.WithHTTPClient(httpClient),
 	}
 	if cfg.Telemetry.OTLP.Insecure {
 		metricOpts = append(metricOpts, otlpmetrichttp.WithInsecure())

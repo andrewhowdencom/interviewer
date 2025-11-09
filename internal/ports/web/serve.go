@@ -13,6 +13,7 @@ import (
 
 	"github.com/andrewhowdencom/vox/internal/config"
 	"github.com/andrewhowdencom/vox/internal/domain/interview"
+	voxhttp "github.com/andrewhowdencom/vox/internal/http"
 	"github.com/andrewhowdencom/vox/internal/adapters/providers/gemini"
 	"github.com/andrewhowdencom/vox/internal/adapters/providers/static"
 	"github.com/andrewhowdencom/vox/internal/adapters/storage/bbolt"
@@ -65,8 +66,11 @@ func NewServeCmd() *cobra.Command {
 				os.Exit(1)
 			}
 
+			httpClient := voxhttp.NewClient(cfg.DNSServer)
+			slackClient := goslack.New(botToken, goslack.OptionHTTPClient(httpClient))
+
 			server := &Server{
-				slackClient:      goslack.New(botToken),
+				slackClient:      slackClient,
 				signingSecret:    signingSecret,
 				apiKey:           apiKey,
 				config:           &cfg,
@@ -322,7 +326,7 @@ func newQuestionProvider(cfg *config.Config, topic *config.Topic, apiKey, model 
 		}
 
 		finalPrompt := buildGeminiPrompt(cfg, topic.Prompt)
-		return gemini.New(gemini.Model(model), gemini.APIKey(apiKey), gemini.Prompt(finalPrompt))
+		return gemini.New(cfg, gemini.Model(model), gemini.APIKey(apiKey), gemini.Prompt(finalPrompt))
 	default:
 		return nil, fmt.Errorf("unknown provider '%s'", topic.Provider)
 	}

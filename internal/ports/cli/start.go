@@ -107,7 +107,7 @@ func newQuestionProvider(cmd *cobra.Command, cfg *config.Config, topic *config.T
 		finalPrompt := buildGeminiPrompt(cfg, topic.Prompt)
 		// We need to cast the concrete type to the interface type.
 		// Since gemini.New returns (interview.QuestionProvider, error), we can do this.
-		p, err := gemini.New(gemini.Model(model), gemini.APIKey(apiKey), gemini.Prompt(finalPrompt))
+		p, err := gemini.New(cfg, gemini.Model(model), gemini.APIKey(apiKey), gemini.Prompt(finalPrompt))
 		if err != nil {
 			return nil, err
 		}
